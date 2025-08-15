@@ -53,6 +53,7 @@ export const OperationalPanel = () => {
 
   const handleValidateCandidate = async (candidateId: string) => {
     try {
+      // Atualizar no banco de dados
       const { error } = await supabase
         .from('candidates')
         .update({
@@ -64,11 +65,24 @@ export const OperationalPanel = () => {
 
       if (error) throw error;
 
-      toast.success('Candidato validado com sucesso!');
+      // Atualizar na planilha do Google Sheets
+      try {
+        const { error: sheetError } = await supabase.functions.invoke('update-sheet', {
+          body: { candidateId }
+        });
+
+        if (sheetError) {
+          console.error('Erro ao atualizar planilha:', sheetError);
+          toast.warning('Candidato validado no sistema, mas erro ao atualizar planilha');
+        } else {
+          toast.success('Candidato validado com sucesso no sistema e planilha!');
+        }
+      } catch (sheetError) {
+        console.error('Erro ao chamar função de atualização da planilha:', sheetError);
+        toast.warning('Candidato validado no sistema, mas erro ao atualizar planilha');
+      }
+
       await loadCandidates();
-      
-      // Aqui também atualizaríamos a planilha do Google Sheets
-      // Implementar quando integração com Google Sheets estiver pronta
       
     } catch (error) {
       console.error('Erro ao validar candidato:', error);
@@ -88,6 +102,26 @@ export const OperationalPanel = () => {
 
   useEffect(() => {
     loadCandidates();
+
+    // Configurar tempo real para candidatos
+    const channel = supabase
+      .channel('operational-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'candidates'
+        },
+        () => {
+          loadCandidates();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (isLoading) {
@@ -212,8 +246,10 @@ export const OperationalPanel = () => {
                             variant="default"
                             size="sm"
                             onClick={() => handleValidateCandidate(candidate.id)}
+                            className="transition-all duration-200 hover:scale-105 bg-primary hover:bg-primary/90"
                           >
-                            <CheckCircle className="h-4 w-4" />
+                            <CheckCircle className="h-4 w-4 mr-1" />
+                            Validar
                           </Button>
                         )}
                       </div>

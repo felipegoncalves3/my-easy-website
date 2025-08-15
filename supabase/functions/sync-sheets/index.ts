@@ -107,6 +107,32 @@ serve(async (req) => {
         disponibilidade: "Integral",
         status: "pendente",
         bpo_validou: "NAO"
+      },
+      {
+        nome: "Maria Santos",
+        cpf: "98765432100",
+        email: "maria@email.com",
+        telefone: "(11) 88888-8888",
+        data_nascimento: "1985-05-15",
+        cidade: "Rio de Janeiro",
+        estado: "RJ",
+        escolaridade: "Superior Completo",
+        disponibilidade: "Meio período",
+        status: "pendente",
+        bpo_validou: "NAO"
+      },
+      {
+        nome: "Pedro Costa",
+        cpf: "11122233300",
+        email: "pedro@email.com",
+        telefone: "(11) 77777-7777",
+        data_nascimento: "1992-12-10",
+        cidade: "Belo Horizonte",
+        estado: "MG",
+        escolaridade: "Técnico",
+        disponibilidade: "Integral",
+        status: "pendente",
+        bpo_validou: "NAO"
       }
     ];
 

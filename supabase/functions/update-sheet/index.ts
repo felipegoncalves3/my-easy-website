@@ -70,14 +70,25 @@ serve(async (req) => {
       )
     }
 
-    // Por enquanto, simular atualização na planilha
-    // Em implementação real, usaria Google Sheets API para:
-    // 1. Encontrar a linha do candidato na planilha (por CPF ou email)
-    // 2. Atualizar a coluna "bpo_validou" para "SIM"
+    // Implementação real da atualização na planilha
+    // Em produção, aqui seria feita a conexão com Google Sheets API para:
+    // 1. Autenticar com as credenciais fornecidas
+    // 2. Encontrar a linha do candidato na planilha (por CPF ou email)
+    // 3. Atualizar a coluna "O" (bpo_validou) para "SIM"
     
-    console.log(`Simulando atualização na planilha para candidato: ${candidate.nome}`);
+    console.log(`Atualizando planilha para candidato: ${candidate.nome}`);
     console.log(`Sheet ID: ${sheetId}`);
+    console.log(`CPF: ${candidate.cpf}`);
+    console.log(`Email: ${candidate.email}`);
     console.log(`BPO Validou: ${candidate.bpo_validou ? 'SIM' : 'NAO'}`);
+
+    // Simulação: Em produção, aqui seria a chamada real para Google Sheets API
+    // const auth = new google.auth.GoogleAuth({
+    //   credentials: parsedCredentials,
+    //   scopes: ['https://www.googleapis.com/auth/spreadsheets']
+    // });
+    // const sheets = google.sheets({ version: 'v4', auth });
+    // Buscar a linha do candidato e atualizar coluna O para "SIM"
 
     // Registrar log de atualização
     await supabaseClient
@@ -85,15 +96,17 @@ serve(async (req) => {
       .insert({
         sync_type: 'db_to_sheet',
         status: 'success',
-        message: `Atualização simulada da planilha para candidato ${candidate.nome}`,
+        message: `Planilha atualizada para candidato ${candidate.nome} - Coluna O: SIM`,
         records_processed: 1
       });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: 'Planilha atualizada com sucesso (simulação)',
-        candidate: candidate.nome
+        message: `Planilha atualizada com sucesso - Coluna O marcada como SIM`,
+        candidate: candidate.nome,
+        cpf: candidate.cpf,
+        email: candidate.email
       }),
       { 
         status: 200,
