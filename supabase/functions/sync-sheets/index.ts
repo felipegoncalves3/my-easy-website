@@ -108,7 +108,7 @@ serve(async (req) => {
         if (header.includes('priorizar') && header.includes('status')) columnMap.priorizar_status = index;
         if (header.includes('priorizar') && header.includes('data')) columnMap.priorizar_data_admissao = index;
         if (header.includes('em') && header.includes('progresso')) columnMap.em_progresso = index;
-        if (header === 'bpo_validou') columnMap.bpo_validou = index;
+        if (header.includes('bpo_validou') || header.includes('bpo validou')) columnMap.bpo_validou = index;
       });
 
       console.log('Mapeamento de colunas encontradas:', columnMap);
