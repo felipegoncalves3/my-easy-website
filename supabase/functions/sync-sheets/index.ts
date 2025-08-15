@@ -169,25 +169,38 @@ serve(async (req) => {
     // Processar cada linha da planilha
     for (const row of sheetData) {
       try {
-        // Verificar se candidato já existe (por CPF)
+        // Verificar se candidato já existe (por código da planilha)
         const { data: existingCandidate } = await supabaseClient
           .from('candidates')
-          .select('id, bpo_validou')
-          .eq('cpf', row.cpf)
+          .select('*')
+          .eq('sheet_row_id', parseInt(row.codigo || '0'))
           .maybeSingle();
 
-        if (!existingCandidate && row.nome && row.cpf) {
-          // Inserir novo candidato
+        const isValidated = row.bpo_validou === 'SIM';
+        const candidateStatus = isValidated ? 'validado' : 'pendente';
+
+        if (!existingCandidate && row.nome && row.codigo) {
+          // Inserir novo candidato usando código como identificador único
           const candidateData = {
             nome: row.nome,
-            cpf: row.cpf,
-            status: row.status_contratacao || 'pendente',
-            bpo_validou: row.bpo_validou === 'SIM',
-            observacoes: `Código: ${row.codigo} | BPO Responsável: ${row.bpo_responsavel} | Motivo: ${row.motivo}`,
-            sheet_row_id: parseInt(row.codigo || '0')
+            cpf: row.cpf || '',
+            status: candidateStatus,
+            bpo_validou: isValidated,
+            observacoes: `BPO Responsável: ${row.bpo_responsavel} | Motivo: ${row.motivo} | Status Contratação: ${row.status_contratacao} | Progressão: ${row.progressao_documentos}`,
+            sheet_row_id: parseInt(row.codigo),
+            data_nascimento: null,
+            email: '',
+            telefone: '',
+            endereco: '',
+            cidade: '',
+            estado: '',
+            cep: '',
+            disponibilidade: row.status_contratacao || '',
+            experiencia_anterior: row.evolucao || '',
+            escolaridade: ''
           };
 
-          console.log(`Inserindo novo candidato: ${candidateData.nome} - bpo_validou: ${candidateData.bpo_validou}`);
+          console.log(`Inserindo novo candidato: ${candidateData.nome} - Código: ${row.codigo} - Status: ${candidateStatus}`);
 
           const { error } = await supabaseClient
             .from('candidates')
@@ -197,21 +210,26 @@ serve(async (req) => {
             processedRecords++;
           }
         } else if (existingCandidate) {
-          // Atualizar status de validação se mudou na planilha
-          const newValidationStatus = row.bpo_validou === 'SIM';
-          if (existingCandidate.bpo_validou !== newValidationStatus) {
-            console.log(`Atualizando candidato ${row.nome}: bpo_validou de ${existingCandidate.bpo_validou} para ${newValidationStatus}`);
-            
-            await supabaseClient
-              .from('candidates')
-              .update({ 
-                bpo_validou: newValidationStatus,
-                status: newValidationStatus ? 'validado' : row.status_contratacao || 'pendente'
-              })
-              .eq('id', existingCandidate.id);
-            
-            processedRecords++;
-          }
+          // Atualizar candidato existente com todas as informações da planilha
+          console.log(`Atualizando candidato ${row.nome} - Código: ${row.codigo} - Status: ${candidateStatus}`);
+          
+          const updateData = {
+            nome: row.nome,
+            cpf: row.cpf || existingCandidate.cpf,
+            status: candidateStatus,
+            bpo_validou: isValidated,
+            observacoes: `BPO Responsável: ${row.bpo_responsavel} | Motivo: ${row.motivo} | Status Contratação: ${row.status_contratacao} | Progressão: ${row.progressao_documentos}`,
+            disponibilidade: row.status_contratacao || existingCandidate.disponibilidade,
+            experiencia_anterior: row.evolucao || existingCandidate.experiencia_anterior,
+            updated_at: new Date().toISOString()
+          };
+
+          await supabaseClient
+            .from('candidates')
+            .update(updateData)
+            .eq('sheet_row_id', parseInt(row.codigo));
+          
+          processedRecords++;
         }
       } catch (error) {
         console.error('Erro ao processar candidato:', error);
