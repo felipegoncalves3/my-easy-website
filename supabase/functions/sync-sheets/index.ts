@@ -88,29 +88,55 @@ serve(async (req) => {
         throw new Error('Planilha vazia ou sem dados');
       }
       
+      // Processar cabeçalho para mapear colunas
+      const headerLine = lines[0].split(',').map(col => col.replace(/"/g, '').trim().toLowerCase());
+      
+      // Mapear índices das colunas
+      const columnMap: Record<string, number> = {};
+      headerLine.forEach((header, index) => {
+        if (header.includes('código') || header.includes('codigo')) columnMap.codigo = index;
+        if (header.includes('nome')) columnMap.nome = index;
+        if (header.includes('cpf')) columnMap.cpf = index;
+        if (header.includes('status') && header.includes('contratação')) columnMap.status_contratacao = index;
+        if (header.includes('progressão') || header.includes('progressao')) columnMap.progressao_documentos = index;
+        if (header.includes('data') && header.includes('criação')) columnMap.data_criacao = index;
+        if (header.includes('data') && header.includes('admissão')) columnMap.data_admissao = index;
+        if (header.includes('data') && header.includes('expiração')) columnMap.data_expiracao = index;
+        if (header.includes('evolução') || header.includes('evolucao')) columnMap.evolucao = index;
+        if (header.includes('motivo')) columnMap.motivo = index;
+        if (header.includes('bpo') && header.includes('responsavel')) columnMap.bpo_responsavel = index;
+        if (header.includes('priorizar') && header.includes('status')) columnMap.priorizar_status = index;
+        if (header.includes('priorizar') && header.includes('data')) columnMap.priorizar_data_admissao = index;
+        if (header.includes('em') && header.includes('progresso')) columnMap.em_progresso = index;
+        if (header.includes('bpo_validou')) columnMap.bpo_validou = index;
+      });
+
+      console.log('Mapeamento de colunas encontradas:', columnMap);
+      
       // Pular a primeira linha (cabeçalho) e processar os dados
       for (let i = 1; i < lines.length; i++) {
         const columns = lines[i].split(',').map(col => col.replace(/"/g, '').trim());
         
-        if (columns.length >= 15 && columns[1]) { // Verificar se tem dados suficientes e nome não vazio
+        if (columns.length >= Object.keys(columnMap).length && columns[columnMap.nome || 1]) {
           const row: SheetRow = {
-            codigo: columns[0] || '',
-            nome: columns[1] || '',
-            cpf: columns[2] || '',
-            status_contratacao: columns[3] || '',
-            progressao_documentos: columns[4] || '',
-            data_criacao: columns[5] || '',
-            data_admissao: columns[6] || '',
-            data_expiracao: columns[7] || '',
-            evolucao: columns[8] || '',
-            motivo: columns[9] || '',
-            bpo_responsavel: columns[10] || '',
-            priorizar_status: columns[11] || '',
-            priorizar_data_admissao: columns[12] || '',
-            em_progresso: columns[13] || '',
-            bpo_validou: columns[14] || 'NAO'
+            codigo: columns[columnMap.codigo || 0] || '',
+            nome: columns[columnMap.nome || 1] || '',
+            cpf: columns[columnMap.cpf || 2] || '',
+            status_contratacao: columns[columnMap.status_contratacao || 3] || '',
+            progressao_documentos: columns[columnMap.progressao_documentos || 4] || '',
+            data_criacao: columns[columnMap.data_criacao || 5] || '',
+            data_admissao: columns[columnMap.data_admissao || 6] || '',
+            data_expiracao: columns[columnMap.data_expiracao || 7] || '',
+            evolucao: columns[columnMap.evolucao || 8] || '',
+            motivo: columns[columnMap.motivo || 9] || '',
+            bpo_responsavel: columns[columnMap.bpo_responsavel || 10] || '',
+            priorizar_status: columns[columnMap.priorizar_status || 11] || '',
+            priorizar_data_admissao: columns[columnMap.priorizar_data_admissao || 12] || '',
+            em_progresso: columns[columnMap.em_progresso || 13] || '',
+            bpo_validou: columns[columnMap.bpo_validou || 14] || 'NAO'
           };
           
+          console.log(`Processando linha ${i}: ${row.nome} - bpo_validou: ${row.bpo_validou}`);
           sheetData.push(row);
         }
       }
@@ -161,6 +187,8 @@ serve(async (req) => {
             sheet_row_id: parseInt(row.codigo || '0')
           };
 
+          console.log(`Inserindo novo candidato: ${candidateData.nome} - bpo_validou: ${candidateData.bpo_validou}`);
+
           const { error } = await supabaseClient
             .from('candidates')
             .insert(candidateData);
@@ -172,10 +200,17 @@ serve(async (req) => {
           // Atualizar status de validação se mudou na planilha
           const newValidationStatus = row.bpo_validou === 'SIM';
           if (existingCandidate.bpo_validou !== newValidationStatus) {
+            console.log(`Atualizando candidato ${row.nome}: bpo_validou de ${existingCandidate.bpo_validou} para ${newValidationStatus}`);
+            
             await supabaseClient
               .from('candidates')
-              .update({ bpo_validou: newValidationStatus })
+              .update({ 
+                bpo_validou: newValidationStatus,
+                status: newValidationStatus ? 'validado' : row.status_contratacao || 'pendente'
+              })
               .eq('id', existingCandidate.id);
+            
+            processedRecords++;
           }
         }
       } catch (error) {
