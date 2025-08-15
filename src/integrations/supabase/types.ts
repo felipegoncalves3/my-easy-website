@@ -14,7 +14,182 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      candidates: {
+        Row: {
+          bpo_validou: boolean | null
+          cep: string | null
+          cidade: string | null
+          cpf: string | null
+          created_at: string | null
+          data_nascimento: string | null
+          disponibilidade: string | null
+          email: string | null
+          endereco: string | null
+          escolaridade: string | null
+          estado: string | null
+          experiencia_anterior: string | null
+          id: string
+          nome: string
+          observacoes: string | null
+          salario_pretendido: number | null
+          sheet_row_id: number | null
+          status: string | null
+          telefone: string | null
+          updated_at: string | null
+          validado_em: string | null
+          validado_por: string | null
+        }
+        Insert: {
+          bpo_validou?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          disponibilidade?: string | null
+          email?: string | null
+          endereco?: string | null
+          escolaridade?: string | null
+          estado?: string | null
+          experiencia_anterior?: string | null
+          id?: string
+          nome: string
+          observacoes?: string | null
+          salario_pretendido?: number | null
+          sheet_row_id?: number | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          validado_em?: string | null
+          validado_por?: string | null
+        }
+        Update: {
+          bpo_validou?: boolean | null
+          cep?: string | null
+          cidade?: string | null
+          cpf?: string | null
+          created_at?: string | null
+          data_nascimento?: string | null
+          disponibilidade?: string | null
+          email?: string | null
+          endereco?: string | null
+          escolaridade?: string | null
+          estado?: string | null
+          experiencia_anterior?: string | null
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          salario_pretendido?: number | null
+          sheet_row_id?: number | null
+          status?: string | null
+          telefone?: string | null
+          updated_at?: string | null
+          validado_em?: string | null
+          validado_por?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "candidates_validado_por_fkey"
+            columns: ["validado_por"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sync_logs: {
+        Row: {
+          created_at: string | null
+          id: string
+          message: string | null
+          records_processed: number | null
+          status: string
+          sync_type: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          records_processed?: number | null
+          status: string
+          sync_type: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          message?: string | null
+          records_processed?: number | null
+          status?: string
+          sync_type?: string
+        }
+        Relationships: []
+      }
+      system_config: {
+        Row: {
+          config_key: string
+          config_value: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          updated_at: string | null
+        }
+        Insert: {
+          config_key: string
+          config_value?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Update: {
+          config_key?: string
+          config_value?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      users: {
+        Row: {
+          created_at: string | null
+          department: string | null
+          email: string
+          full_name: string
+          id: string
+          is_active: boolean | null
+          password: string
+          role: string | null
+          updated_at: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string | null
+          department?: string | null
+          email: string
+          full_name: string
+          id?: string
+          is_active?: boolean | null
+          password: string
+          role?: string | null
+          updated_at?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string | null
+          department?: string | null
+          email?: string
+          full_name?: string
+          id?: string
+          is_active?: boolean | null
+          password?: string
+          role?: string | null
+          updated_at?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

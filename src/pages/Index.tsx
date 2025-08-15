@@ -4,8 +4,11 @@ import FeatureCard from "@/components/FeatureCard";
 import heroImage from "@/assets/hero-gradient.jpg";
 import { Sparkles, Gauge, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Index = () => {
+  const navigate = useNavigate();
+  
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "WebSite",
@@ -28,7 +31,9 @@ const Index = () => {
           <a href="#recursos" className="text-sm text-muted-foreground hover:text-foreground">Recursos</a>
           <a href="#contato" className="text-sm text-muted-foreground hover:text-foreground">Contato</a>
         </nav>
-        <Button className="md:ml-4" size="sm">Começar</Button>
+        <Button className="md:ml-4" size="sm" onClick={() => navigate('/system')}>
+          Acessar Sistema
+        </Button>
       </header>
 
       <main>
@@ -36,26 +41,38 @@ const Index = () => {
           <Hero imageUrl={heroImage} />
         </section>
 
+        <section className="container py-16 md:py-24 bg-accent/50">
+          <div className="mx-auto max-w-4xl text-center">
+            <h2 className="mb-3 text-3xl font-semibold md:text-4xl">Sistema BPO de Validação</h2>
+            <p className="text-muted-foreground mb-8">
+              Acesse o sistema para gerenciar candidatos, validar dados e gerar relatórios em tempo real
+            </p>
+            <Button size="lg" onClick={() => navigate('/system')} className="px-8 py-4 text-lg">
+              Acessar Sistema Completo
+            </Button>
+          </div>
+        </section>
+
         <section id="recursos" className="container py-16 md:py-24">
           <div className="mx-auto max-w-3xl text-center">
-            <h2 className="mb-3 text-3xl font-semibold md:text-4xl">Recursos essenciais</h2>
-            <p className="text-muted-foreground">Tudo o que você precisa para lançar rápido e com estilo.</p>
+            <h2 className="mb-3 text-3xl font-semibold md:text-4xl">Funcionalidades do Sistema</h2>
+            <p className="text-muted-foreground">Ferramenta completa para gestão de candidatos BPO.</p>
           </div>
           <div className="mt-10 grid gap-6 md:grid-cols-3">
             <FeatureCard
               icon={<Sparkles className="size-5" />}
-              title="Design premium"
-              description="Cores, gradientes e microinterações elegantes prontas para uso."
+              title="Dashboard Analítico"
+              description="Acompanhe estatísticas e métricas em tempo real."
             />
             <FeatureCard
               icon={<Gauge className="size-5" />}
-              title="Performance"
-              description="Imagens otimizadas, carregamento rápido e boas práticas SEO."
+              title="Painel Operacional"
+              description="Valide candidatos de forma rápida e eficiente."
             />
             <FeatureCard
               icon={<Shield className="size-5" />}
-              title="Acessibilidade"
-              description="Contraste, foco visível e responsividade em todos os dispositivos."
+              title="Sincronização Automática"
+              description="Integração com Google Sheets a cada 10 minutos."
             />
           </div>
         </section>
