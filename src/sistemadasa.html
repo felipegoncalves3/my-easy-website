@@ -1,0 +1,2819 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Validação de Candidatos - BPO</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/date-fns@2.29.3/index.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: {
+                            50: '#f0fdf4',
+                            100: '#dcfce7',
+                            200: '#bbf7d0',
+                            300: '#86efac',
+                            400: '#4ade80',
+                            500: '#22c55e',
+                            600: '#16a34a',
+                            700: '#15803d',
+                            800: '#166534',
+                            900: '#14532d',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background-color: #f0fdf4;
+            background-image: 
+                radial-gradient(at 20% 80%, rgba(120, 255, 214, 0.1) 0px, transparent 50%),
+                radial-gradient(at 80% 20%, rgba(120, 255, 214, 0.1) 0px, transparent 50%),
+                radial-gradient(at 40% 40%, rgba(120, 255, 214, 0.05) 0px, transparent 50%);
+            margin: 0;
+            padding: 0;
+        }
+        
+        .sidebar {
+            width: 260px;
+            min-height: 100vh;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            transition: transform 0.3s ease;
+        }
+        
+        .sidebar-closed {
+            transform: translateX(-100%);
+        }
+        
+        .main-content {
+            margin-left: 260px;
+            transition: margin-left 0.3s ease;
+            min-height: 100vh;
+        }
+        
+        .main-content-expanded {
+            margin-left: 0;
+        }
+        
+        .menu-item {
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .menu-item::before {
+            content: '';
+            position: absolute;
+            left: 0;
+            top: 0;
+            height: 100%;
+            width: 4px;
+            background: linear-gradient(to bottom, #22c55e, #16a34a);
+            transform: translateX(-100%);
+            transition: transform 0.3s ease;
+        }
+        
+        .menu-item:hover::before,
+        .menu-item.active::before {
+            transform: translateX(0);
+        }
+        
+        .menu-item:hover {
+            background: rgba(34, 197, 94, 0.1);
+            padding-left: 24px;
+        }
+        
+        .menu-item.active {
+            background: rgba(34, 197, 94, 0.15);
+        }
+        
+        .page-section {
+            display: none;
+        }
+        
+        .page-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        }
+        
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+        
+        .progress-bar {
+            height: 8px;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            overflow: hidden;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(to right, #4ade80, #22c55e);
+            border-radius: 9999px;
+        }
+        
+        .table-container {
+            max-height: calc(100vh - 320px);
+            overflow-y: auto;
+        }
+        
+        .table-container::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .table-container::-webkit-scrollbar-track {
+            background: #dcfce7;
+            border-radius: 3px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb {
+            background: #86efac;
+            border-radius: 3px;
+        }
+        
+        .table-container::-webkit-scrollbar-thumb:hover {
+            background: #4ade80;
+        }
+        
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .main-content {
+                margin-left: 0;
+            }
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+        
+        .login-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 9999;
+        }
+        
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .evolution-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 0.375rem;
+            font-size: 0.75rem;
+            font-weight: 500;
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .hidden {
+            display: none !important;
+        }
+        
+        .pagination-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .pagination-btn:hover:not(:disabled) {
+            background-color: #f3f4f6;
+        }
+        
+        .pagination-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .pagination-btn.active {
+            background-color: #22c55e;
+            color: white;
+        }
+        
+        /* Novos estilos para melhorias */
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background-color: #ef4444;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: bold;
+        }
+        
+        .candidate-card {
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+        
+        .candidate-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.5s ease;
+        }
+        
+        .slide-in {
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+        
+        .export-btn {
+            transition: all 0.2s ease;
+        }
+        
+        .export-btn:hover {
+            transform: scale(1.05);
+        }
+        
+        .filter-tag {
+            display: inline-flex;
+            align-items: center;
+            background-color: #e5e7eb;
+            border-radius: 9999px;
+            padding: 0.25rem 0.75rem;
+            margin: 0.25rem;
+            font-size: 0.75rem;
+        }
+        
+        .filter-tag button {
+            margin-left: 0.5rem;
+            background: none;
+            border: none;
+            color: #6b7280;
+            cursor: pointer;
+        }
+        
+        .filter-tag button:hover {
+            color: #374151;
+        }
+        
+        .detail-row {
+            display: flex;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .detail-row:last-child {
+            border-bottom: none;
+        }
+        
+        .detail-label {
+            font-weight: 600;
+            width: 150px;
+            color: #4b5563;
+        }
+        
+        .detail-value {
+            flex: 1;
+            color: #1f2937;
+        }
+        
+        .sync-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .candidate-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+        
+        .info-card {
+            background: #f9fafb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+        }
+        
+        .info-card-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: #6b7280;
+            margin-bottom: 0.25rem;
+        }
+        
+        .info-card-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #111827;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Page -->
+    <div id="loginPage" class="login-container">
+        <div class="login-card glass rounded-xl shadow-xl p-8">
+            <div class="text-center mb-8">
+                <div class="w-16 h-16 rounded-full bg-primary-500 flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-check-circle text-white text-2xl"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-gray-900">BPO System</h1>
+                <p class="text-gray-600 mt-2">Sistema de Validação de Candidatos</p>
+            </div>
+            
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="mb-4">
+                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-user text-gray-400"></i>
+                        </div>
+                        <input
+                            type="text"
+                            id="username"
+                            name="username"
+                            required
+                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Digite seu usuário"
+                        />
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i class="fas fa-lock text-gray-400"></i>
+                        </div>
+                        <input
+                            type="password"
+                            id="password"
+                            name="password"
+                            required
+                            class="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            placeholder="Digite sua senha"
+                        />
+                    </div>
+                </div>
+                
+                <div class="flex items-center justify-between mb-6">
+                    <div class="flex items-center">
+                        <input
+                            id="remember-me"
+                            name="remember-me"
+                            type="checkbox"
+                            class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                        />
+                        <label for="remember-me" class="ml-2 block text-sm text-gray-700">
+                            Lembrar-me
+                        </label>
+                    </div>
+                    <div class="text-sm">
+                        <a href="#" class="font-medium text-primary-600 hover:text-primary-500">
+                            Esqueceu a senha?
+                        </a>
+                    </div>
+                </div>
+                
+                <button
+                    type="submit"
+                    class="w-full bg-primary-500 hover:bg-primary-600 text-white py-2 px-4 rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                >
+                    Entrar
+                </button>
+                
+                <div id="loginError" class="mt-4 text-red-600 text-sm text-center hidden">
+                    <i class="fas fa-exclamation-circle mr-1"></i>
+                    Usuário ou senha inválidos
+                </div>
+            </form>
+            
+            <div class="mt-8 text-center">
+                <p class="text-xs text-gray-500">
+                    © 2025 BPO System. Todos os direitos reservados.
+                </p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Application -->
+    <div id="mainApp" class="hidden">
+        <div class="flex">
+            <!-- Sidebar -->
+            <div id="sidebar" class="sidebar bg-white shadow-lg">
+                <div class="p-6">
+                    <div class="flex items-center mb-10">
+                        <div class="w-10 h-10 rounded-lg bg-primary-500 flex items-center justify-center">
+                            <i class="fas fa-check-circle text-white"></i>
+                        </div>
+                        <span class="ml-3 text-xl font-bold text-gray-900">BPO System</span>
+                    </div>
+                    
+                    <nav class="space-y-2">
+                        <button onclick="showPage('dashboard')" class="menu-item active w-full flex items-center px-4 py-3 rounded-lg text-left">
+                            <i class="fas fa-tachometer-alt text-primary-600 w-5"></i>
+                            <span class="ml-3 text-gray-700 font-medium">Dashboard</span>
+                        </button>
+                        <button onclick="showPage('operational')" class="menu-item w-full flex items-center px-4 py-3 rounded-lg text-left">
+                            <i class="fas fa-users text-primary-600 w-5"></i>
+                            <span class="ml-3 text-gray-700 font-medium">Painel Operacional</span>
+                        </button>
+                        <button onclick="showPage('reports')" class="menu-item w-full flex items-center px-4 py-3 rounded-lg text-left">
+                            <i class="fas fa-chart-bar text-primary-600 w-5"></i>
+                            <span class="ml-3 text-gray-700 font-medium">Relatórios</span>
+                        </button>
+                        <button id="settingsMenu" onclick="showPage('settings')" class="menu-item w-full flex items-center px-4 py-3 rounded-lg text-left">
+                            <i class="fas fa-cog text-primary-600 w-5"></i>
+                            <span class="ml-3 text-gray-700 font-medium">Configuração</span>
+                        </button>
+                        <button onclick="logout()" class="w-full flex items-center px-4 py-3 rounded-lg text-left mt-8 text-gray-500 hover:text-gray-700">
+                            <i class="fas fa-sign-out-alt w-5"></i>
+                            <span class="ml-3">Sair</span>
+                        </button>
+                    </nav>
+                    
+                    <div class="mt-8 pt-8 border-t border-gray-200">
+                        <div class="text-center">
+                            <div class="w-16 h-16 rounded-full bg-primary-100 flex items-center justify-center mx-auto mb-3">
+                                <i class="fas fa-user text-primary-600 text-2xl"></i>
+                            </div>
+                            <p class="text-sm font-medium text-gray-900" id="currentUser">BPO Team</p>
+                            <p class="text-xs text-gray-500">Sistema de Validação</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Main Content -->
+            <div id="mainContent" class="main-content">
+                <!-- Header -->
+                <header class="bg-white shadow-sm border-b border-gray-200">
+                    <div class="px-6 py-4">
+                        <div class="flex justify-between items-center">
+                            <div class="flex items-center">
+                                <button id="openSidebar" class="md:hidden text-gray-500 hover:text-gray-700 mr-4">
+                                    <i class="fas fa-bars text-xl"></i>
+                                </button>
+                                <div>
+                                    <h1 id="pageTitle" class="text-xl font-bold text-gray-900">Dashboard</h1>
+                                    <p id="pageSubtitle" class="text-sm text-gray-500">Visão geral do sistema</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center space-x-4">
+                                <div class="relative">
+                                    <button class="text-gray-500 hover:text-gray-700">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                    <span class="notification-badge">3</span>
+                                </div>
+                                <div class="w-8 h-8 rounded-full bg-primary-100 flex items-center justify-center">
+                                    <span class="text-primary-800 text-sm font-medium">BPO</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+                
+                <!-- Main Content Area -->
+                <main class="p-6">
+                    <!-- Dashboard Page -->
+                    <div id="dashboard-page" class="page-section active">
+                        <!-- Stats Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 candidate-card">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-lg bg-primary-100">
+                                        <i class="fas fa-users text-primary-600 text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Total Candidatos</p>
+                                        <p class="text-2xl font-bold text-gray-900" id="totalCandidates">3</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex items-center text-sm text-green-600">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        <span>12% desde o último mês</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 candidate-card">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-lg bg-yellow-100">
+                                        <i class="fas fa-clock text-yellow-600 text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Pendentes</p>
+                                        <p class="text-2xl font-bold text-gray-900" id="pendingCandidates">3</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex items-center text-sm text-yellow-600">
+                                        <i class="fas fa-minus mr-1"></i>
+                                        <span>Aguardando validação</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 candidate-card">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-lg bg-green-100">
+                                        <i class="fas fa-check-circle text-green-600 text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Validados</p>
+                                        <p class="text-2xl font-bold text-gray-900" id="validatedCandidates">0</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex items-center text-sm text-green-600">
+                                        <i class="fas fa-arrow-up mr-1"></i>
+                                        <span>25% esta semana</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 candidate-card">
+                                <div class="flex items-center">
+                                    <div class="p-3 rounded-lg bg-red-100">
+                                        <i class="fas fa-exclamation-circle text-red-600 text-xl"></i>
+                                    </div>
+                                    <div class="ml-4">
+                                        <p class="text-sm font-medium text-gray-500">Recusados</p>
+                                        <p class="text-2xl font-bold text-gray-900" id="rejectedCandidates">0</p>
+                                    </div>
+                                </div>
+                                <div class="mt-4">
+                                    <div class="flex items-center text-sm text-gray-600">
+                                        <i class="fas fa-minus mr-1"></i>
+                                        <span>Nenhum recusado</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- BPO Performance Chart -->
+                        <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-8">
+                            <div class="flex justify-between items-center mb-4">
+                                <h3 class="text-lg font-semibold text-gray-900">Desempenho por BPO</h3>
+                                <button onclick="exportBPOReport()" class="text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg">
+                                    <i class="fas fa-download mr-1"></i> Exportar Relatório
+                                </button>
+                            </div>
+                            <div class="chart-container">
+                                <canvas id="bpoPerformanceChart"></canvas>
+                            </div>
+                        </div>
+                        
+                        <!-- Charts Row -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                            <!-- Progress Chart -->
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Progresso de Validação</h3>
+                                    <select id="progressChartPeriod" class="text-sm border border-gray-300 rounded-lg px-2 py-1 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        <option value="week">Última semana</option>
+                                        <option value="month">Último mês</option>
+                                        <option value="quarter">Último trimestre</option>
+                                    </select>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="progressChart"></canvas>
+                                </div>
+                            </div>
+                            
+                            <!-- Status Distribution -->
+                            <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                <div class="flex justify-between items-center mb-4">
+                                    <h3 class="text-lg font-semibold text-gray-900">Distribuição de Status</h3>
+                                    <button class="text-sm text-primary-600 hover:text-primary-800">
+                                        <i class="fas fa-download mr-1"></i> Exportar
+                                    </button>
+                                </div>
+                                <div class="chart-container">
+                                    <canvas id="statusChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Recent Activity and Priority Candidates -->
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <!-- Recent Activity -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div class="px-6 py-4 border-b border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900">Atividade Recente</h3>
+                                </div>
+                                <div class="p-6">
+                                    <div class="space-y-4">
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <i class="fas fa-user-plus text-blue-600"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4 flex-1">
+                                                <p class="text-sm font-medium text-gray-900">Novo candidato adicionado</p>
+                                                <p class="text-sm text-gray-500">Maria Eduarda Correia Teixeira foi adicionado ao sistema</p>
+                                                <p class="text-xs text-gray-400 mt-1">Há 1 dia</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <i class="fas fa-user-plus text-blue-600"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4 flex-1">
+                                                <p class="text-sm font-medium text-gray-900">Novo candidato adicionado</p>
+                                                <p class="text-sm text-gray-500">Patricia Ferraz Silva foi adicionado ao sistema</p>
+                                                <p class="text-xs text-gray-400 mt-1">Há 2 dias</p>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0">
+                                                <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                                    <i class="fas fa-user-plus text-blue-600"></i>
+                                                </div>
+                                            </div>
+                                            <div class="ml-4 flex-1">
+                                                <p class="text-sm font-medium text-gray-900">Novo candidato adicionado</p>
+                                                <p class="text-sm text-gray-500">Pamela Mirelle foi adicionada ao sistema</p>
+                                                <p class="text-xs text-gray-400 mt-1">Há 3 dias</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Priority Candidates -->
+                            <div class="bg-white rounded-xl shadow-sm border border-gray-200">
+                                <div class="px-6 py-4 border-b border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900">Candidatos Prioritários</h3>
+                                </div>
+                                <div class="p-6">
+                                    <div class="space-y-4">
+                                        <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                                            <div class="flex items-center">
+                                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                    <span class="text-red-800 font-medium">M</span>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900">Maria Eduarda C. Teixeira</p>
+                                                    <p class="text-xs text-gray-500">Admissão: 18/08/2025</p>
+                                                </div>
+                                            </div>
+                                            <button onclick="showCandidateDetails('134341')" class="text-sm text-red-600 hover:text-red-800">
+                                                <i class="fas fa-eye mr-1"></i> Ver
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                                            <div class="flex items-center">
+                                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                    <span class="text-red-800 font-medium">P</span>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900">Patricia Ferraz Silva</p>
+                                                    <p class="text-xs text-gray-500">Admissão: 18/08/2025</p>
+                                                </div>
+                                            </div>
+                                            <button onclick="showCandidateDetails('133429')" class="text-sm text-red-600 hover:text-red-800">
+                                                <i class="fas fa-eye mr-1"></i> Ver
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between p-3 bg-red-50 rounded-lg border border-red-100">
+                                            <div class="flex items-center">
+                                                <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center">
+                                                    <span class="text-red-800 font-medium">P</span>
+                                                </div>
+                                                <div class="ml-3">
+                                                    <p class="text-sm font-medium text-gray-900">Pamela Mirelle</p>
+                                                    <p class="text-xs text-gray-500">Admissão: 18/08/2025</p>
+                                                </div>
+                                            </div>
+                                            <button onclick="showCandidateDetails('129238')" class="text-sm text-red-600 hover:text-red-800">
+                                                <i class="fas fa-eye mr-1"></i> Ver
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Operational Panel Page -->
+                    <div id="operational-page" class="page-section">
+                        <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                            <!-- Tabs -->
+                            <div class="border-b border-gray-200">
+                                <nav class="flex -mb-px">
+                                    <button onclick="showTab('pending')" class="tab-btn active px-6 py-3 border-b-2 border-primary-500 font-medium text-sm text-primary-600">
+                                        Pendentes
+                                    </button>
+                                    <button onclick="showTab('validated')" class="tab-btn px-6 py-3 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300">
+                                        Validados
+                                    </button>
+                                </nav>
+                            </div>
+                            
+                            <!-- Filters -->
+                            <div class="p-6 border-b border-gray-200">
+                                <div class="flex flex-wrap gap-4">
+                                    <div class="flex-1 min-w-[300px]">
+                                        <div class="relative">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                                <i class="fas fa-search text-gray-400"></i>
+                                            </div>
+                                            <input type="text" id="searchInput" placeholder="Buscar candidato (qualquer coluna)..." 
+                                                class="pl-10 pr-4 py-2 w-full border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        </div>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Status</label>
+                                        <select id="statusFilter" class="w-48 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            <option value="">Todos</option>
+                                            <option value="Validação">Validação</option>
+                                            <option value="Validado">Validado</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">Prioridade</label>
+                                        <select id="priorityFilter" class="w-48 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            <option value="">Todas</option>
+                                            <option value="Priorizar">Priorizar</option>
+                                            <option value="">Normal</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div>
+                                        <label class="block text-sm font-medium text-gray-700 mb-1">BPO Responsável</label>
+                                        <select id="bpoFilter" class="w-48 border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            <option value="">Todos</option>
+                                            <option value="Gustavo Otacilio Dos Santos">Gustavo Otacilio Dos Santos</option>
+                                            <option value="Naiane Nairim Silva Dos Santos">Naiane Nairim Silva Dos Santos</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div class="flex items-end">
+                                        <button id="clearFilters" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                                            <i class="fas fa-times mr-2"></i>
+                                            Limpar Filtros
+                                        </button>
+                                    </div>
+                                </div>
+                                
+                                <!-- Active Filters Display -->
+                                <div id="activeFilters" class="mt-4 flex flex-wrap hidden">
+                                    <span class="text-sm text-gray-500 mr-2">Filtros ativos:</span>
+                                </div>
+                            </div>
+                            
+                            <!-- Pending Tab Content -->
+                            <div id="pending-tab" class="tab-content active">
+                                <div class="table-container">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50 sticky top-0">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Candidato
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    CPF
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Progresso
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Data Admissão
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    BPO Responsável
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Prioridade
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Motivo Evolução
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Ações
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="pendingTableBody" class="bg-white divide-y divide-gray-200">
+                                            <!-- Table rows will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Pagination for Pending Tab -->
+                                <div class="px-6 py-4 border-t border-gray-200 bg-white">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-sm text-gray-700">
+                                            Mostrando <span id="pendingStartRecord">1</span> a <span id="pendingEndRecord">15</span> de <span id="pendingTotalRecords">0</span> registros
+                                        </div>
+                                        <div class="flex space-x-2" id="pendingPagination">
+                                            <!-- Pagination buttons will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Validated Tab Content -->
+                            <div id="validated-tab" class="tab-content">
+                                <div class="table-container">
+                                    <table class="min-w-full divide-y divide-gray-200">
+                                        <thead class="bg-gray-50 sticky top-0">
+                                            <tr>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Candidato
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    CPF
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Status
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Progresso
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Data Admissão
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    BPO Responsável
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Prioridade
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Motivo Evolução
+                                                </th>
+                                                <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                    Ações
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="validatedTableBody" class="bg-white divide-y divide-gray-200">
+                                            <!-- Table rows will be populated by JavaScript -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                                
+                                <!-- Pagination for Validated Tab -->
+                                <div class="px-6 py-4 border-t border-gray-200 bg-white">
+                                    <div class="flex items-center justify-between">
+                                        <div class="text-sm text-gray-700">
+                                            Mostrando <span id="validatedStartRecord">1</span> a <span id="validatedEndRecord">15</span> de <span id="validatedTotalRecords">0</span> registros
+                                        </div>
+                                        <div class="flex space-x-2" id="validatedPagination">
+                                            <!-- Pagination buttons will be populated by JavaScript -->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Reports Page -->
+                    <div id="reports-page" class="page-section">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2">
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Relatórios Disponíveis</h3>
+                                    
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div class="flex items-center mb-3">
+                                                <div class="p-2 rounded-lg bg-blue-100 mr-3">
+                                                    <i class="fas fa-file-alt text-blue-600"></i>
+                                                </div>
+                                                <h4 class="font-medium text-gray-900">Relatório de Candidatos</h4>
+                                            </div>
+                                            <p class="text-sm text-gray-500 mb-4">Lista completa de todos os candidatos com status atual</p>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-xs text-gray-400">Atualizado: Hoje</span>
+                                                <button onclick="exportReport('candidates')" class="export-btn text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg">
+                                                    <i class="fas fa-download mr-1"></i> Exportar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div class="flex items-center mb-3">
+                                                <div class="p-2 rounded-lg bg-green-100 mr-3">
+                                                    <i class="fas fa-check-circle text-green-600"></i>
+                                                </div>
+                                                <h4 class="font-medium text-gray-900">Candidatos Validados</h4>
+                                            </div>
+                                            <p class="text-sm text-gray-500 mb-4">Relatório de candidatos com validação concluída</p>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-xs text-gray-400">Atualizado: Hoje</span>
+                                                <button onclick="exportReport('validated')" class="export-btn text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg">
+                                                    <i class="fas fa-download mr-1"></i> Exportar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div class="flex items-center mb-3">
+                                                <div class="p-2 rounded-lg bg-yellow-100 mr-3">
+                                                    <i class="fas fa-clock text-yellow-600"></i>
+                                                </div>
+                                                <h4 class="font-medium text-gray-900">Candidatos Pendentes</h4>
+                                            </div>
+                                            <p class="text-sm text-gray-500 mb-4">Relatório de candidatos aguardando validação</p>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-xs text-gray-400">Atualizado: Hoje</span>
+                                                <button onclick="exportReport('pending')" class="export-btn text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg">
+                                                    <i class="fas fa-download mr-1"></i> Exportar
+                                                </button>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                            <div class="flex items-center mb-3">
+                                                <div class="p-2 rounded-lg bg-purple-100 mr-3">
+                                                    <i class="fas fa-user-tie text-purple-600"></i>
+                                                </div>
+                                                <h4 class="font-medium text-gray-900">Desempenho por BPO</h4>
+                                            </div>
+                                            <p class="text-sm text-gray-500 mb-4">Relatório de validações por BPO responsável</p>
+                                            <div class="flex justify-between items-center">
+                                                <span class="text-xs text-gray-400">Atualizado: Hoje</span>
+                                                <button onclick="exportBPOReport()" class="export-btn text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg">
+                                                    <i class="fas fa-download mr-1"></i> Exportar
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Gerar Relatório Personalizado</h3>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Relatório</label>
+                                            <select id="customReportType" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option>Resumo Geral</option>
+                                                <option>Por Período</option>
+                                                <option>Por Status</option>
+                                                <option>Por BPO Responsável</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Data Inicial</label>
+                                                <input type="date" id="customReportStartDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            </div>
+                                            
+                                            <div>
+                                                <label class="block text-sm font-medium text-gray-700 mb-2">Data Final</label>
+                                                <input type="date" id="customReportEndDate" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Formato de Exportação</label>
+                                            <div class="flex space-x-4">
+                                                <label class="flex items-center">
+                                                    <input type="radio" name="format" value="xlsx" class="mr-2" checked>
+                                                    <span>Excel (.xlsx)</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="radio" name="format" value="pdf" class="mr-2">
+                                                    <span>PDF</span>
+                                                </label>
+                                                <label class="flex items-center">
+                                                    <input type="radio" name="format" value="csv" class="mr-2">
+                                                    <span>CSV</span>
+                                                </label>
+                                            </div>
+                                        </div>
+                                        
+                                        <div class="pt-4">
+                                            <button onclick="generateCustomReport()" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-lg font-medium transition-colors">
+                                                <i class="fas fa-file-export mr-2"></i>
+                                                Gerar Relatório
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="lg:col-span-1">
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Agendar Relatórios</h3>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Relatório</label>
+                                            <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option>Resumo Diário</option>
+                                                <option>Resumo Semanal</option>
+                                                <option>Resumo Mensal</option>
+                                                <option>Desempenho por BPO</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Frequência</label>
+                                            <select class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                                <option>Diariamente</option>
+                                                <option>Semanalmente</option>
+                                                <option>Mensalmente</option>
+                                            </select>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">E-mail para envio</label>
+                                            <input type="email" placeholder="exemplo@empresa.com" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
+                                        </div>
+                                        
+                                        <div class="pt-2">
+                                            <button class="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                                <i class="fas fa-calendar-plus mr-2"></i>
+                                                Agendar
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Relatórios Agendados</h3>
+                                    
+                                    <div class="space-y-3">
+                                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">Resumo Diário</p>
+                                                <p class="text-xs text-gray-500">Diariamente às 09:00</p>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">Resumo Semanal</p>
+                                                <p class="text-xs text-gray-500">Segundas-feiras às 10:00</p>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                            <div>
+                                                <p class="text-sm font-medium text-gray-900">Desempenho por BPO</p>
+                                                <p class="text-xs text-gray-500">Sextas-feiras às 15:00</p>
+                                            </div>
+                                            <button class="text-red-500 hover:text-red-700">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Settings Page -->
+                    <div id="settings-page" class="page-section">
+                        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div class="lg:col-span-2">
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Configurações do Sistema</h3>
+                                    
+                                    <div class="space-y-6">
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Link da Planilha Google Sheets</label>
+                                            <input
+                                                type="text"
+                                                id="spreadsheetUrl"
+                                                placeholder="https://docs.google.com/spreadsheets/d/..."
+                                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            />
+                                            <p class="mt-2 text-sm text-gray-500">
+                                                Insira o link da sua planilha do Google Sheets que contém os dados dos candidatos.
+                                            </p>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">ID da Planilha</label>
+                                            <input
+                                                type="text"
+                                                id="spreadsheetId"
+                                                placeholder="ID extraído do link da planilha"
+                                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            />
+                                            <p class="mt-2 text-sm text-gray-500">
+                                                O ID da planilha é a parte do URL entre "/d/" e "/edit". Ex: 1AbCdEfGhIjKlMnOpQrStUvWxYz123456789
+                                            </p>
+                                        </div>
+                                        
+                                        <div>
+                                            <label class="block text-sm font-medium text-gray-700 mb-2">Nome da Aba</label>
+                                            <input
+                                                type="text"
+                                                id="sheetName"
+                                                placeholder="Nome da aba com os dados"
+                                                class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                                            />
+                                            <p class="mt-2 text-sm text-gray-500">
+                                                Nome da aba (planilha) que contém os dados dos candidatos.
+                                            </p>
+                                        </div>
+                                        
+                                        <div class="pt-4 border-t border-gray-200">
+                                            <button onclick="saveSettings()" class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-lg font-medium transition-colors">
+                                                <i class="fas fa-save mr-2"></i>
+                                                Salvar Configurações
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-6">Gerenciamento de Usuários</h3>
+                                    
+                                    <div class="space-y-4">
+                                        <div class="flex justify-between items-center">
+                                            <h4 class="font-medium text-gray-900">Usuários do Sistema</h4>
+                                            <button class="text-sm bg-primary-500 hover:bg-primary-600 text-white px-3 py-1 rounded-lg">
+                                                <i class="fas fa-plus mr-1"></i> Adicionar
+                                            </button>
+                                        </div>
+                                        
+                                        <div class="overflow-x-auto">
+                                            <table class="min-w-full divide-y divide-gray-200">
+                                                <thead class="bg-gray-50">
+                                                    <tr>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Usuário
+                                                        </th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Função
+                                                        </th>
+                                                        <th scope="col" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Status
+                                                        </th>
+                                                        <th scope="col" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                                            Ações
+                                                        </th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody class="bg-white divide-y divide-gray-200">
+                                                    <tr>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            admin
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                            Administrador
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                                Ativo
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                            <button class="text-primary-600 hover:text-primary-900 mr-3">Editar</button>
+                                                            <button class="text-red-600 hover:text-red-900">Excluir</button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            bpo
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                            BPO
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                                Ativo
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                            <button class="text-primary-600 hover:text-primary-900 mr-3">Editar</button>
+                                                            <button class="text-red-600 hover:text-red-900">Excluir</button>
+                                                        </td>
+                                                    </tr>
+                                                    <tr>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">
+                                                            supervisao
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">
+                                                            Supervisão
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap">
+                                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                                                Ativo
+                                                            </span>
+                                                        </td>
+                                                        <td class="px-4 py-3 whitespace-nowrap text-right text-sm font-medium">
+                                                            <button class="text-primary-600 hover:text-primary-900 mr-3">Editar</button>
+                                                            <button class="text-red-600 hover:text-red-900">Excluir</button>
+                                                        </td>
+                                                    </tr>
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="lg:col-span-1">
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200 mb-6">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Informações da Conexão</h3>
+                                    
+                                    <div class="space-y-4">
+                                        <div>
+                                            <p class="text-sm text-gray-500">Status da Conexão</p>
+                                            <div class="flex items-center mt-1">
+                                                <span class="w-3 h-3 bg-red-500 rounded-full mr-2" id="connectionStatus"></span>
+                                                <span class="text-sm font-medium text-gray-900" id="connectionStatusText">Não conectado</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <div>
+                                            <p class="text-sm text-gray-500">Última Sincronização</p>
+                                            <p class="text-sm font-medium text-gray-900 mt-1" id="lastSync">Nunca</p>
+                                        </div>
+                                        
+                                        <div>
+                                            <p class="text-sm text-gray-500">Total de Candidatos</p>
+                                            <p class="text-sm font-medium text-gray-900 mt-1" id="totalCandidatesSettings">3</p>
+                                        </div>
+                                        
+                                        <div class="pt-4 mt-4 border-t border-gray-200">
+                                            <button onclick="syncData()" id="syncButton" class="w-full bg-primary-500 hover:bg-primary-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
+                                                <i class="fas fa-sync-alt mr-2"></i>
+                                                Sincronizar Agora
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="bg-white rounded-xl shadow-sm p-6 border border-gray-200">
+                                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Instruções de Configuração</h3>
+                                    
+                                    <div class="space-y-3">
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 mt-1">
+                                                <span class="flex items-center justify-center h-6 w-6 rounded-full bg-primary-100 text-primary-800 text-xs font-bold">1</span>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-600">Abra sua planilha no Google Sheets</p>
+                                        </div>
+                                        
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 mt-1">
+                                                <span class="flex items-center justify-center h-6 w-6 rounded-full bg-primary-100 text-primary-800 text-xs font-bold">2</span>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-600">Copie o URL da planilha</p>
+                                        </div>
+                                        
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 mt-1">
+                                                <span class="flex items-center justify-center h-6 w-6 rounded-full bg-primary-100 text-primary-800 text-xs font-bold">3</span>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-600">Cole o URL no campo acima e salve</p>
+                                        </div>
+                                        
+                                        <div class="flex items-start">
+                                            <div class="flex-shrink-0 mt-1">
+                                                <span class="flex items-center justify-center h-6 w-6 rounded-full bg-primary-100 text-primary-800 text-xs font-bold">4</span>
+                                            </div>
+                                            <p class="ml-3 text-sm text-gray-600">Certifique-se de que sua planilha tenha as colunas necessárias</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </main>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Validation Modal -->
+    <div id="validationModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 fade-in">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-gray-900">Validar Candidato</h3>
+                    <button onclick="closeValidationModal()" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="mb-6">
+                    <p class="text-gray-700 mb-2">Você está prestes a marcar este candidato como validado:</p>
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <p class="font-medium text-gray-900" id="modalCandidateName"></p>
+                        <p class="text-sm text-gray-500" id="modalCandidateCPF"></p>
+                    </div>
+                </div>
+                
+                <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Observações (opcional)</label>
+                    <textarea id="validationNotes" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-primary-500 focus:border-primary-500" placeholder="Adicione observações sobre a validação..."></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button onclick="closeValidationModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        Cancelar
+                    </button>
+                    <button onclick="confirmValidation()" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                        <i class="fas fa-check mr-2"></i>
+                        Confirmar Validação
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Candidate Details Modal -->
+    <div id="candidateDetailsModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50 flex items-center justify-center">
+        <div class="bg-white rounded-xl shadow-xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto fade-in">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-semibold text-gray-900">Detalhes do Candidato</h3>
+                    <button onclick="closeCandidateDetailsModal()" class="text-gray-400 hover:text-gray-500">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                    <div class="md:col-span-1">
+                        <div class="bg-gray-50 rounded-lg p-4 flex flex-col items-center">
+                            <div class="w-24 h-24 rounded-full bg-primary-100 flex items-center justify-center mb-3">
+                                <span class="text-primary-800 text-2xl font-bold" id="detailsCandidateInitial">M</span>
+                            </div>
+                            <h4 class="text-lg font-semibold text-gray-900" id="detailsCandidateName">Maria Eduarda Correia Teixeira</h4>
+                            <p class="text-sm text-gray-500" id="detailsCandidateCPF">120.959.039-51</p>
+                            
+                            <div class="mt-4 w-full">
+                                <div class="flex justify-between text-sm mb-1">
+                                    <span class="text-gray-600">Progresso</span>
+                                    <span class="font-medium" id="detailsCandidateProgress">100%</span>
+                                </div>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="detailsProgressBar" style="width: 100%"></div>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4 w-full">
+                                <span class="status-badge bg-yellow-100 text-yellow-800 w-full justify-center" id="detailsCandidateStatus">
+                                    Validação
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <div class="bg-white border border-gray-200 rounded-lg p-4">
+                            <h4 class="text-md font-semibold text-gray-900 mb-4">Informações do Candidato</h4>
+                            
+                            <div class="candidate-info-grid">
+                                <div class="info-card">
+                                    <div class="info-card-title">Código</div>
+                                    <div class="info-card-value" id="detailsCandidateCode">134341</div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">Data de Criação</div>
+                                    <div class="info-card-value" id="detailsCandidateCreationDate">07/08/2025</div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">Data de Admissão</div>
+                                    <div class="info-card-value" id="detailsCandidateAdmissionDate">18/08/2025</div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">BPO Responsável</div>
+                                    <div class="info-card-value" id="detailsCandidateBPO">Gustavo Otacilio Dos Santos</div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">Prioridade</div>
+                                    <div class="info-card-value" id="detailsCandidatePriority">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                            <i class="fas fa-exclamation-circle mr-1"></i> Priorizar
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">Motivo Evolução</div>
+                                    <div class="info-card-value" id="detailsCandidateEvolutionReason">Novo Documento</div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">Validado pelo BPO</div>
+                                    <div class="info-card-value" id="detailsCandidateBPOValidated">SIM</div>
+                                </div>
+                                
+                                <div class="info-card">
+                                    <div class="info-card-title">Status</div>
+                                    <div class="info-card-value" id="detailsCandidateStatusBadge">
+                                        <span class="status-badge bg-yellow-100 text-yellow-800">Validação</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200">
+                    <button onclick="closeCandidateDetailsModal()" class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors">
+                        Fechar
+                    </button>
+                    <button onclick="openValidationModalFromDetails()" class="px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg font-medium transition-colors">
+                        <i class="fas fa-check mr-2"></i>
+                        Validar Candidato
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Success Toast -->
+    <div id="successToast" class="fixed bottom-4 right-4 bg-green-500 text-white px-6 py-3 rounded-lg shadow-lg hidden fade-in">
+        <div class="flex items-center">
+            <i class="fas fa-check-circle mr-2"></i>
+            <span id="successToastMessage">Operação realizada com sucesso!</span>
+        </div>
+    </div>
+    
+    <!-- Settings Saved Toast -->
+    <div id="settingsToast" class="fixed bottom-4 right-4 bg-primary-500 text-white px-6 py-3 rounded-lg shadow-lg hidden fade-in">
+        <div class="flex items-center">
+            <i class="fas fa-save mr-2"></i>
+            <span>Configurações salvas com sucesso!</span>
+        </div>
+    </div>
+    
+    <!-- Error Toast -->
+    <div id="errorToast" class="fixed bottom-4 right-4 bg-red-500 text-white px-6 py-3 rounded-lg shadow-lg hidden fade-in">
+        <div class="flex items-center">
+            <i class="fas fa-exclamation-circle mr-2"></i>
+            <span id="errorToastMessage">Ocorreu um erro!</span>
+        </div>
+    </div>
+    
+    <script>
+        // User credentials
+        const users = [
+            { username: 'admin', password: 'Admin@123', role: 'admin' },
+            { username: 'bpo', password: 'Bpo@123', role: 'bpo' },
+            { username: 'supervisao', password: 'Supervisao@123', role: 'supervisao' }
+        ];
+        
+        // Current user
+        let currentUser = null;
+        
+        // Sample data - In a real application, this would come from Google Sheets API
+        let candidates = [
+            {
+                codigo: "134341",
+                nome: "Maria Eduarda Correia Teixeira",
+                cpf: "12095903951",
+                status: "Validação",
+                progressao: "100",
+                dataCriacao: "2025-08-07",
+                dataAdmissao: "2025-08-18",
+                dataExpiracao: "",
+                evolucao: "",
+                motivo: "Novo Documento",
+                bpoResponsavel: "Gustavo Otacilio Dos Santos",
+                priorizarStatus: "Priorizar",
+                priorizarDataAdmissao: "Priorizar",
+                emProgresso: "",
+                bpo_validou: "SIM",
+                validado: false
+            },
+            {
+                codigo: "133429",
+                nome: "Patricia Ferraz Silva",
+                cpf: "34568676894",
+                status: "Validação",
+                progressao: "100",
+                dataCriacao: "2025-08-05",
+                dataAdmissao: "2025-08-18",
+                dataExpiracao: "",
+                evolucao: "",
+                motivo: "Novo Documento",
+                bpoResponsavel: "Naiane Nairim Silva Dos Santos",
+                priorizarStatus: "Priorizar",
+                priorizarDataAdmissao: "Priorizar",
+                emProgresso: "",
+                bpo_validou: "SIM",
+                validado: false
+            },
+            {
+                codigo: "129238",
+                nome: "Pamela Mirelle",
+                cpf: "47777314807",
+                status: "Validação",
+                progressao: "100",
+                dataCriacao: "2025-07-25",
+                dataAdmissao: "2025-08-18",
+                dataExpiracao: "",
+                evolucao: "",
+                motivo: "Novo Documento",
+                bpoResponsavel: "Naiane Nairim Silva Dos Santos",
+                priorizarStatus: "Priorizar",
+                priorizarDataAdmissao: "Priorizar",
+                emProgresso: "",
+                bpo_validou: "SIM 1",
+                validado: false
+            }
+        ];
+        
+        let currentCandidateId = null;
+        let currentTab = 'pending';
+        let spreadsheetSettings = {
+            url: '',
+            id: '',
+            name: ''
+        };
+        
+        // Pagination settings
+        const RECORDS_PER_PAGE = 15;
+        let pendingCurrentPage = 1;
+        let validatedCurrentPage = 1;
+        
+        // Handle login
+        function handleLogin(event) {
+            event.preventDefault();
+            
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            // Find user
+            const user = users.find(u => u.username === username && u.password === password);
+            
+            if (user) {
+                currentUser = user;
+                
+                // Save user to localStorage
+                localStorage.setItem('currentUser', JSON.stringify(user));
+                
+                // Hide login page and show main app
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('currentUser').textContent = user.username;
+                
+                // Apply role-based permissions
+                if (user.role === 'bpo' || user.role === 'supervisao') {
+                    document.getElementById('settingsMenu').style.display = 'none';
+                }
+                
+                // Initialize the app
+                loadSettings();
+                updateDashboardStats();
+                renderCandidatesTable();
+                setupEventListeners();
+                initializeCharts();
+                initializeBPOPerformanceChart();
+            } else {
+                document.getElementById('loginError').classList.remove('hidden');
+            }
+        }
+        
+        // Logout
+        function logout() {
+            currentUser = null;
+            localStorage.removeItem('currentUser');
+            document.getElementById('loginPage').classList.remove('hidden');
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('loginError').classList.add('hidden');
+        }
+        
+        // Initialize the application
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is already logged in
+            const savedUser = localStorage.getItem('currentUser');
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                document.getElementById('loginPage').classList.add('hidden');
+                document.getElementById('mainApp').classList.remove('hidden');
+                document.getElementById('currentUser').textContent = currentUser.username;
+                
+                // Apply role-based permissions
+                if (currentUser.role === 'bpo' || currentUser.role === 'supervisao') {
+                    document.getElementById('settingsMenu').style.display = 'none';
+                }
+                
+                // Initialize the app
+                loadSettings();
+                updateDashboardStats();
+                renderCandidatesTable();
+                setupEventListeners();
+                initializeCharts();
+                initializeBPOPerformanceChart();
+            }
+        });
+        
+        // Setup event listeners
+        function setupEventListeners() {
+            document.getElementById('openSidebar').addEventListener('click', toggleSidebar);
+            document.getElementById('searchInput').addEventListener('input', filterCandidates);
+            document.getElementById('statusFilter').addEventListener('change', filterCandidates);
+            document.getElementById('priorityFilter').addEventListener('change', filterCandidates);
+            document.getElementById('bpoFilter').addEventListener('change', filterCandidates);
+            document.getElementById('clearFilters').addEventListener('click', clearFilters);
+            document.getElementById('progressChartPeriod').addEventListener('change', updateProgressChart);
+        }
+        
+        // Toggle sidebar
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const mainContent = document.getElementById('mainContent');
+            
+            sidebar.classList.toggle('sidebar-closed');
+            mainContent.classList.toggle('main-content-expanded');
+        }
+        
+        // Show page
+        function showPage(pageId) {
+            // Check permissions
+            if (pageId === 'settings' && currentUser && (currentUser.role === 'bpo' || currentUser.role === 'supervisao')) {
+                return;
+            }
+            
+            // Hide all pages
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show selected page
+            document.getElementById(`${pageId}-page`).classList.add('active');
+            
+            // Update menu active state
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.menu-item').classList.add('active');
+            
+            // Update page title
+            const titles = {
+                'dashboard': { title: 'Dashboard', subtitle: 'Visão geral do sistema' },
+                'operational': { title: 'Painel Operacional', subtitle: 'Validação de candidatos' },
+                'reports': { title: 'Relatórios', subtitle: 'Relatórios e estatísticas' },
+                'settings': { title: 'Configuração', subtitle: 'Configurações do sistema' }
+            };
+            
+            document.getElementById('pageTitle').textContent = titles[pageId].title;
+            document.getElementById('pageSubtitle').textContent = titles[pageId].subtitle;
+        }
+        
+        // Show tab
+        function showTab(tabId) {
+            currentTab = tabId;
+            
+            // Reset pagination when switching tabs
+            if (tabId === 'pending') {
+                pendingCurrentPage = 1;
+            } else if (tabId === 'validated') {
+                validatedCurrentPage = 1;
+            }
+            
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'border-primary-500', 'text-primary-600');
+                btn.classList.add('border-transparent', 'text-gray-500');
+            });
+            
+            event.target.classList.remove('border-transparent', 'text-gray-500');
+            event.target.classList.add('active', 'border-primary-500', 'text-primary-600');
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            document.getElementById(`${tabId}-tab`).classList.add('active');
+            
+            // Render the appropriate table
+            renderCandidatesTable();
+        }
+        
+        // Update dashboard statistics
+        function updateDashboardStats() {
+            const total = candidates.length;
+            const pending = candidates.filter(c => !c.validado && c.status !== 'Documentos Recusados').length;
+            const validated = candidates.filter(c => c.validado).length;
+            const rejected = candidates.filter(c => c.status === 'Documentos Recusados').length;
+            
+            document.getElementById('totalCandidates').textContent = total;
+            document.getElementById('pendingCandidates').textContent = pending;
+            document.getElementById('validatedCandidates').textContent = validated;
+            document.getElementById('rejectedCandidates').textContent = rejected;
+            document.getElementById('totalCandidatesSettings').textContent = total;
+        }
+        
+        // Initialize charts
+        function initializeCharts() {
+            // Progress Chart
+            const progressCtx = document.getElementById('progressChart').getContext('2d');
+            window.progressChart = new Chart(progressCtx, {
+                type: 'line',
+                data: {
+                    labels: ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+                    datasets: [{
+                        label: 'Candidatos Validados',
+                        data: [0, 0, 0, 0, 0, 0, 0],
+                        borderColor: '#22c55e',
+                        backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                        tension: 0.4,
+                        fill: true
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+            
+            // Status Chart
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            window.statusChart = new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Pendentes', 'Validados', 'Recusados'],
+                    datasets: [{
+                        data: [
+                            candidates.filter(c => !c.validado && c.status !== 'Documentos Recusados').length,
+                            candidates.filter(c => c.validado).length,
+                            candidates.filter(c => c.status === 'Documentos Recusados').length
+                        ],
+                        backgroundColor: ['#fbbf24', '#22c55e', '#ef4444']
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Initialize BPO Performance Chart
+        function initializeBPOPerformanceChart() {
+            const bpoCtx = document.getElementById('bpoPerformanceChart').getContext('2d');
+            
+            // Count validated candidates by BPO
+            const bpoStats = {};
+            candidates.forEach(candidate => {
+                if (candidate.validado && candidate.bpoResponsavel) {
+                    if (!bpoStats[candidate.bpoResponsavel]) {
+                        bpoStats[candidate.bpoResponsavel] = 0;
+                    }
+                    bpoStats[candidate.bpoResponsavel]++;
+                }
+            });
+            
+            // Also count total candidates by BPO
+            const bpoTotalStats = {};
+            candidates.forEach(candidate => {
+                if (candidate.bpoResponsavel) {
+                    if (!bpoTotalStats[candidate.bpoResponsavel]) {
+                        bpoTotalStats[candidate.bpoResponsavel] = 0;
+                    }
+                    bpoTotalStats[candidate.bpoResponsavel]++;
+                }
+            });
+            
+            const bpoNames = Object.keys(bpoTotalStats);
+            const validatedCounts = bpoNames.map(name => bpoStats[name] || 0);
+            const totalCounts = bpoNames.map(name => bpoTotalStats[name] || 0);
+            
+            window.bpoPerformanceChart = new Chart(bpoCtx, {
+                type: 'bar',
+                data: {
+                    labels: bpoNames,
+                    datasets: [
+                        {
+                            label: 'Total de Candidatos',
+                            data: totalCounts,
+                            backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                            borderColor: 'rgba(59, 130, 246, 1)',
+                            borderWidth: 1
+                        },
+                        {
+                            label: 'Candidatos Validados',
+                            data: validatedCounts,
+                            backgroundColor: 'rgba(34, 197, 94, 0.5)',
+                            borderColor: 'rgba(34, 197, 94, 1)',
+                            borderWidth: 1
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'top'
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Update progress chart based on selected period
+        function updateProgressChart() {
+            const period = document.getElementById('progressChartPeriod').value;
+            
+            let labels, data;
+            
+            if (period === 'week') {
+                labels = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
+                data = [0, 0, 0, 0, 0, 0, 0];
+            } else if (period === 'month') {
+                labels = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+                data = [0, 0, 0, 0];
+            } else if (period === 'quarter') {
+                labels = ['Jan', 'Fev', 'Mar'];
+                data = [0, 0, 0];
+            }
+            
+            window.progressChart.data.labels = labels;
+            window.progressChart.data.datasets[0].data = data;
+            window.progressChart.update();
+        }
+        
+        // Render candidates table with pagination
+        function renderCandidatesTable() {
+            const pendingBody = document.getElementById('pendingTableBody');
+            const validatedBody = document.getElementById('validatedTableBody');
+            
+            pendingBody.innerHTML = '';
+            validatedBody.innerHTML = '';
+            
+            const pendingCandidates = candidates.filter(c => !c.validado && c.status !== 'Documentos Recusados');
+            const validatedCandidates = candidates.filter(c => c.validado);
+            
+            // Render pending candidates with pagination
+            if (pendingCandidates.length === 0) {
+                pendingBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <i class="fas fa-check-circle text-4xl mb-3"></i>
+                                <p class="text-lg">Todos os candidatos foram validados!</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                // Calculate pagination for pending candidates
+                const pendingStartIndex = (pendingCurrentPage - 1) * RECORDS_PER_PAGE;
+                const pendingEndIndex = Math.min(pendingStartIndex + RECORDS_PER_PAGE, pendingCandidates.length);
+                const pendingPageCandidates = pendingCandidates.slice(pendingStartIndex, pendingEndIndex);
+                
+                pendingPageCandidates.forEach(candidate => {
+                    const row = createCandidateRow(candidate, false);
+                    pendingBody.appendChild(row);
+                });
+                
+                // Update pagination info for pending tab
+                document.getElementById('pendingStartRecord').textContent = pendingStartIndex + 1;
+                document.getElementById('pendingEndRecord').textContent = pendingEndIndex;
+                document.getElementById('pendingTotalRecords').textContent = pendingCandidates.length;
+                
+                // Render pagination buttons for pending tab
+                renderPagination('pending', pendingCurrentPage, Math.ceil(pendingCandidates.length / RECORDS_PER_PAGE));
+            }
+            
+            // Render validated candidates with pagination
+            if (validatedCandidates.length === 0) {
+                validatedBody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <i class="fas fa-inbox text-4xl mb-3"></i>
+                                <p class="text-lg">Nenhum candidato validado ainda</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            } else {
+                // Calculate pagination for validated candidates
+                const validatedStartIndex = (validatedCurrentPage - 1) * RECORDS_PER_PAGE;
+                const validatedEndIndex = Math.min(validatedStartIndex + RECORDS_PER_PAGE, validatedCandidates.length);
+                const validatedPageCandidates = validatedCandidates.slice(validatedStartIndex, validatedEndIndex);
+                
+                validatedPageCandidates.forEach(candidate => {
+                    const row = createCandidateRow(candidate, true);
+                    validatedBody.appendChild(row);
+                });
+                
+                // Update pagination info for validated tab
+                document.getElementById('validatedStartRecord').textContent = validatedStartIndex + 1;
+                document.getElementById('validatedEndRecord').textContent = validatedEndIndex;
+                document.getElementById('validatedTotalRecords').textContent = validatedCandidates.length;
+                
+                // Render pagination buttons for validated tab
+                renderPagination('validated', validatedCurrentPage, Math.ceil(validatedCandidates.length / RECORDS_PER_PAGE));
+            }
+        }
+        
+        // Render pagination buttons
+        function renderPagination(tabType, currentPage, totalPages) {
+            const paginationContainer = document.getElementById(`${tabType}Pagination`);
+            paginationContainer.innerHTML = '';
+            
+            // Previous button
+            const prevBtn = document.createElement('button');
+            prevBtn.className = `pagination-btn px-3 py-1 rounded-md ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`;
+            prevBtn.disabled = currentPage === 1;
+            prevBtn.innerHTML = '<i class="fas fa-chevron-left"></i>';
+            prevBtn.onclick = () => changePage(tabType, currentPage - 1);
+            paginationContainer.appendChild(prevBtn);
+            
+            // Page number buttons
+            const maxVisiblePages = 5;
+            let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+            let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+            
+            if (endPage - startPage < maxVisiblePages - 1) {
+                startPage = Math.max(1, endPage - maxVisiblePages + 1);
+            }
+            
+            if (startPage > 1) {
+                const firstBtn = document.createElement('button');
+                firstBtn.className = 'pagination-btn px-3 py-1 rounded-md hover:bg-gray-100';
+                firstBtn.textContent = '1';
+                firstBtn.onclick = () => changePage(tabType, 1);
+                paginationContainer.appendChild(firstBtn);
+                
+                if (startPage > 2) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'px-2';
+                    ellipsis.textContent = '...';
+                    paginationContainer.appendChild(ellipsis);
+                }
+            }
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageBtn = document.createElement('button');
+                pageBtn.className = `pagination-btn px-3 py-1 rounded-md ${i === currentPage ? 'bg-primary-500 text-white' : 'hover:bg-gray-100'}`;
+                pageBtn.textContent = i;
+                pageBtn.onclick = () => changePage(tabType, i);
+                paginationContainer.appendChild(pageBtn);
+            }
+            
+            if (endPage < totalPages) {
+                if (endPage < totalPages - 1) {
+                    const ellipsis = document.createElement('span');
+                    ellipsis.className = 'px-2';
+                    ellipsis.textContent = '...';
+                    paginationContainer.appendChild(ellipsis);
+                }
+                
+                const lastBtn = document.createElement('button');
+                lastBtn.className = 'pagination-btn px-3 py-1 rounded-md hover:bg-gray-100';
+                lastBtn.textContent = totalPages;
+                lastBtn.onclick = () => changePage(tabType, totalPages);
+                paginationContainer.appendChild(lastBtn);
+            }
+            
+            // Next button
+            const nextBtn = document.createElement('button');
+            nextBtn.className = `pagination-btn px-3 py-1 rounded-md ${currentPage === totalPages ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'}`;
+            nextBtn.disabled = currentPage === totalPages;
+            nextBtn.innerHTML = '<i class="fas fa-chevron-right"></i>';
+            nextBtn.onclick = () => changePage(tabType, currentPage + 1);
+            paginationContainer.appendChild(nextBtn);
+        }
+        
+        // Change page
+        function changePage(tabType, page) {
+            if (tabType === 'pending') {
+                pendingCurrentPage = page;
+            } else if (tabType === 'validated') {
+                validatedCurrentPage = page;
+            }
+            
+            renderCandidatesTable();
+        }
+        
+        // Create candidate row
+        function createCandidateRow(candidate, status) {
+            const row = document.createElement('tr');
+            row.className = 'hover:bg-gray-50';
+            
+            let statusClass, statusText, actionsHtml;
+            
+            if (status === true) {
+                // Validated candidate
+                statusClass = 'bg-green-100 text-green-800';
+                statusText = 'Validado';
+                actionsHtml = '<span class="text-green-600"><i class="fas fa-check-circle mr-1"></i> Validado</span>';
+            } else {
+                // Pending candidate
+                statusClass = 'bg-yellow-100 text-yellow-800';
+                statusText = candidate.status || 'Validação';
+                actionsHtml = `
+                    <button onclick="showCandidateDetails('${candidate.codigo}')" class="text-blue-600 hover:text-blue-900 mr-3">
+                        <i class="fas fa-eye mr-1"></i> Ver
+                    </button>
+                    <button onclick="openValidationModal('${candidate.codigo}')" class="text-orange-600 hover:text-orange-900">
+                        <i class="fas fa-check-circle mr-1"></i> Validar
+                    </button>
+                `;
+            }
+            
+            const priorityBadge = candidate.priorizarStatus === 'Priorizar' ? 
+                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-exclamation-circle mr-1"></i> Priorizar</span>' : 
+                '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Normal</span>';
+                
+            row.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 h-10 w-10">
+                            <div class="h-10 w-10 rounded-full bg-primary-100 flex items-center justify-center">
+                                <span class="text-primary-800 font-medium">${candidate.nome.charAt(0)}</span>
+                            </div>
+                        </div>
+                        <div class="ml-4">
+                            <div class="text-sm font-medium text-gray-900">${candidate.nome}</div>
+                            <div class="text-sm text-gray-500">Código: ${candidate.codigo}</div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="text-sm text-gray-900">${formatCPF(candidate.cpf)}</div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="status-badge ${statusClass}">${statusText}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <div class="w-full">
+                        <div class="flex justify-between text-sm mb-1">
+                            <span class="text-gray-600">${candidate.progressao}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: ${candidate.progressao}%"></div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${formatDate(candidate.dataAdmissao)}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                    ${candidate.bpoResponsavel}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    ${priorityBadge}
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap">
+                    <span class="evolution-badge">${candidate.motivo || '-'}</span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    ${actionsHtml}
+                </td>
+            `;
+            
+            return row;
+        }
+        
+        // Format CPF
+        function formatCPF(cpf) {
+            if (cpf.length === 11) {
+                return cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+            }
+            return cpf;
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('pt-BR');
+        }
+        
+        // Filter candidates
+        function filterCandidates() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const statusFilter = document.getElementById('statusFilter').value;
+            const priorityFilter = document.getElementById('priorityFilter').value;
+            const bpoFilter = document.getElementById('bpoFilter').value;
+            
+            // Show active filters
+            const activeFiltersContainer = document.getElementById('activeFilters');
+            activeFiltersContainer.innerHTML = '<span class="text-sm text-gray-500 mr-2">Filtros ativos:</span>';
+            let hasActiveFilters = false;
+            
+            if (searchTerm) {
+                const filterTag = document.createElement('span');
+                filterTag.className = 'filter-tag';
+                filterTag.innerHTML = `Busca: ${searchTerm} <button onclick="removeFilter('search')">&times;</button>`;
+                activeFiltersContainer.appendChild(filterTag);
+                hasActiveFilters = true;
+            }
+            
+            if (statusFilter) {
+                const filterTag = document.createElement('span');
+                filterTag.className = 'filter-tag';
+                filterTag.innerHTML = `Status: ${statusFilter} <button onclick="removeFilter('status')">&times;</button>`;
+                activeFiltersContainer.appendChild(filterTag);
+                hasActiveFilters = true;
+            }
+            
+            if (priorityFilter) {
+                const filterTag = document.createElement('span');
+                filterTag.className = 'filter-tag';
+                filterTag.innerHTML = `Prioridade: ${priorityFilter || 'Normal'} <button onclick="removeFilter('priority')">&times;</button>`;
+                activeFiltersContainer.appendChild(filterTag);
+                hasActiveFilters = true;
+            }
+            
+            if (bpoFilter) {
+                const filterTag = document.createElement('span');
+                filterTag.className = 'filter-tag';
+                filterTag.innerHTML = `BPO: ${bpoFilter} <button onclick="removeFilter('bpo')">&times;</button>`;
+                activeFiltersContainer.appendChild(filterTag);
+                hasActiveFilters = true;
+            }
+            
+            if (hasActiveFilters) {
+                activeFiltersContainer.classList.remove('hidden');
+            } else {
+                activeFiltersContainer.classList.add('hidden');
+            }
+            
+            // Get all candidates based on current tab
+            const filteredCandidates = candidates.filter(candidate => {
+                // First filter by tab
+                if (currentTab === 'pending' && candidate.validado) return false;
+                if (currentTab === 'validated' && !candidate.validado) return false;
+                
+                // Then apply other filters
+                const matchesSearch = searchTerm === '' || 
+                                    Object.values(candidate).some(value => 
+                                        value && value.toString().toLowerCase().includes(searchTerm)
+                                    );
+                const matchesStatus = !statusFilter || candidate.status === statusFilter;
+                const matchesPriority = !priorityFilter || candidate.priorizarStatus === priorityFilter;
+                const matchesBPO = !bpoFilter || candidate.bpoResponsavel === bpoFilter;
+                return matchesSearch && matchesStatus && matchesPriority && matchesBPO;
+            });
+            
+            // Update the appropriate table
+            let tbody, startRecordId, endRecordId, totalRecordsId, paginationId;
+            
+            if (currentTab === 'pending') {
+                tbody = document.getElementById('pendingTableBody');
+                startRecordId = 'pendingStartRecord';
+                endRecordId = 'pendingEndRecord';
+                totalRecordsId = 'pendingTotalRecords';
+                paginationId = 'pendingPagination';
+            } else if (currentTab === 'validated') {
+                tbody = document.getElementById('validatedTableBody');
+                startRecordId = 'validatedStartRecord';
+                endRecordId = 'validatedEndRecord';
+                totalRecordsId = 'validatedTotalRecords';
+                paginationId = 'validatedPagination';
+            }
+            
+            tbody.innerHTML = '';
+            
+            if (filteredCandidates.length === 0) {
+                const colspan = currentTab === 'pending' || currentTab === 'validated' ? 9 : 9;
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="${colspan}" class="px-6 py-12 text-center">
+                            <div class="text-gray-400">
+                                <i class="fas fa-search text-4xl mb-3"></i>
+                                <p class="text-lg">Nenhum candidato encontrado</p>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                return;
+            }
+            
+            // Apply pagination to filtered results
+            let currentPage;
+            if (currentTab === 'pending') {
+                currentPage = pendingCurrentPage;
+            } else if (currentTab === 'validated') {
+                currentPage = validatedCurrentPage;
+            }
+            
+            const startIndex = (currentPage - 1) * RECORDS_PER_PAGE;
+            const endIndex = Math.min(startIndex + RECORDS_PER_PAGE, filteredCandidates.length);
+            const pageCandidates = filteredCandidates.slice(startIndex, endIndex);
+            
+            pageCandidates.forEach(candidate => {
+                let status = currentTab === 'pending' ? false : true;
+                const row = createCandidateRow(candidate, status);
+                tbody.appendChild(row);
+            });
+            
+            // Update pagination info
+            const startRecord = startIndex + 1;
+            const endRecord = endIndex;
+            const totalRecords = filteredCandidates.length;
+            const totalPages = Math.ceil(totalRecords / RECORDS_PER_PAGE);
+            
+            document.getElementById(startRecordId).textContent = startRecord;
+            document.getElementById(endRecordId).textContent = endRecord;
+            document.getElementById(totalRecordsId).textContent = totalRecords;
+            renderPagination(currentTab, currentPage, totalPages);
+        }
+        
+        // Remove filter
+        function removeFilter(filterType) {
+            if (filterType === 'search') {
+                document.getElementById('searchInput').value = '';
+            } else if (filterType === 'status') {
+                document.getElementById('statusFilter').value = '';
+            } else if (filterType === 'priority') {
+                document.getElementById('priorityFilter').value = '';
+            } else if (filterType === 'bpo') {
+                document.getElementById('bpoFilter').value = '';
+            }
+            
+            filterCandidates();
+        }
+        
+        // Clear filters
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('priorityFilter').value = '';
+            document.getElementById('bpoFilter').value = '';
+            
+            // Reset pagination when clearing filters
+            if (currentTab === 'pending') {
+                pendingCurrentPage = 1;
+            } else if (currentTab === 'validated') {
+                validatedCurrentPage = 1;
+            }
+            
+            document.getElementById('activeFilters').classList.add('hidden');
+            renderCandidatesTable();
+        }
+        
+        // Show candidate details
+        function showCandidateDetails(candidateCode) {
+            const candidate = candidates.find(c => c.codigo === candidateCode);
+            
+            if (candidate) {
+                // Populate modal with candidate details
+                document.getElementById('detailsCandidateInitial').textContent = candidate.nome.charAt(0);
+                document.getElementById('detailsCandidateName').textContent = candidate.nome;
+                document.getElementById('detailsCandidateCPF').textContent = formatCPF(candidate.cpf);
+                document.getElementById('detailsCandidateProgress').textContent = candidate.progressao + '%';
+                document.getElementById('detailsProgressBar').style.width = candidate.progressao + '%';
+                
+                const statusClass = candidate.status === 'Validado' ? 'bg-green-100 text-green-800' : 
+                                   candidate.status === 'Documentos Recusados' ? 'bg-red-100 text-red-800' : 
+                                   'bg-yellow-100 text-yellow-800';
+                
+                const statusElement = document.getElementById('detailsCandidateStatus');
+                statusElement.className = `status-badge ${statusClass} w-full justify-center`;
+                statusElement.textContent = candidate.status || 'Validação';
+                
+                document.getElementById('detailsCandidateCode').textContent = candidate.codigo;
+                document.getElementById('detailsCandidateCreationDate').textContent = formatDate(candidate.dataCriacao);
+                document.getElementById('detailsCandidateAdmissionDate').textContent = formatDate(candidate.dataAdmissao);
+                document.getElementById('detailsCandidateBPO').textContent = candidate.bpoResponsavel;
+                
+                const priorityBadge = candidate.priorizarStatus === 'Priorizar' ? 
+                    '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><i class="fas fa-exclamation-circle mr-1"></i> Priorizar</span>' : 
+                    '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">Normal</span>';
+                
+                document.getElementById('detailsCandidatePriority').innerHTML = priorityBadge;
+                document.getElementById('detailsCandidateEvolutionReason').textContent = candidate.motivo || '-';
+                document.getElementById('detailsCandidateBPOValidated').textContent = candidate.bpo_validou || '-';
+                
+                // Update status badge
+                const statusBadgeElement = document.getElementById('detailsCandidateStatusBadge');
+                statusBadgeElement.innerHTML = `<span class="status-badge ${statusClass}">${candidate.status || 'Validação'}</span>`;
+                
+                // Show modal
+                document.getElementById('candidateDetailsModal').classList.remove('hidden');
+                
+                // Store current candidate ID for potential actions
+                currentCandidateId = candidateCode;
+            }
+        }
+        
+        // Close candidate details modal
+        function closeCandidateDetailsModal() {
+            document.getElementById('candidateDetailsModal').classList.add('hidden');
+            currentCandidateId = null;
+        }
+        
+        // Open validation modal from details modal
+        function openValidationModalFromDetails() {
+            closeCandidateDetailsModal();
+            openValidationModal(currentCandidateId);
+        }
+        
+        // Open validation modal
+        function openValidationModal(candidateCode) {
+            currentCandidateId = candidateCode;
+            const candidate = candidates.find(c => c.codigo === candidateCode);
+            
+            document.getElementById('modalCandidateName').textContent = candidate.nome;
+            document.getElementById('modalCandidateCPF').textContent = formatCPF(candidate.cpf);
+            document.getElementById('validationNotes').value = '';
+            document.getElementById('validationModal').classList.remove('hidden');
+        }
+        
+        // Close validation modal
+        function closeValidationModal() {
+            document.getElementById('validationModal').classList.add('hidden');
+            currentCandidateId = null;
+        }
+        
+        // Confirm validation
+        function confirmValidation() {
+            if (currentCandidateId) {
+                const candidateIndex = candidates.findIndex(c => c.codigo === currentCandidateId);
+                if (candidateIndex !== -1) {
+                    // Update candidate status
+                    candidates[candidateIndex].validado = true;
+                    candidates[candidateIndex].status = 'Validado';
+                    candidates[candidateIndex].progressao = '100,00';
+                    candidates[candidateIndex].bpo_validou = 'SIM';
+                    
+                    // Update Google Sheets
+                    updateGoogleSheet(candidates[candidateIndex]);
+                    
+                    // Update UI
+                    updateDashboardStats();
+                    renderCandidatesTable();
+                    updateBPOPerformanceChart();
+                    closeValidationModal();
+                    showSuccessToast('Candidato validado com sucesso!');
+                }
+            }
+        }
+        
+        // Update Google Sheets
+        function updateGoogleSheet(candidate) {
+            if (!spreadsheetSettings.id || !spreadsheetSettings.name) {
+                console.log('Spreadsheet settings not configured');
+                return;
+            }
+            
+            // In a real implementation, you would use the Google Sheets API here
+            console.log('Updating Google Sheets:', {
+                spreadsheetId: spreadsheetSettings.id,
+                sheetName: spreadsheetSettings.name,
+                candidateCode: candidate.codigo,
+                update: { 
+                    status: candidate.status,
+                    validado: candidate.validado,
+                    bpo_validou: candidate.bpo_validou
+                }
+            });
+            
+            // This is where you would make the API call to update the sheet
+            // For example, using gapi.client.sheets.spreadsheets.values.update
+        }
+        
+        // Sync data with Google Sheets
+        function syncData() {
+            if (!spreadsheetSettings.id || !spreadsheetSettings.name) {
+                showErrorToast('Configure as integrações com o Google Sheets primeiro.');
+                return;
+            }
+            
+            // Show loading state
+            const syncButton = document.getElementById('syncButton');
+            const originalContent = syncButton.innerHTML;
+            syncButton.innerHTML = '<span class="sync-spinner"></span> Sincronizando...';
+            syncButton.disabled = true;
+            
+            // Simulate API call to Google Sheets
+            setTimeout(() => {
+                try {
+                    // In a real implementation, you would fetch data from Google Sheets API here
+                    console.log('Fetching data from Google Sheets:', {
+                        spreadsheetId: spreadsheetSettings.id,
+                        sheetName: spreadsheetSettings.name
+                    });
+                    
+                    // Simulate fetching new data from Google Sheets
+                    // In a real implementation, this would be an API call to Google Sheets
+                    const mockNewCandidates = [
+                        {
+                            codigo: "135678",
+                            nome: "João Silva Santos",
+                            cpf: "12345678901",
+                            status: "Validação",
+                            progressao: "75",
+                            dataCriacao: "2025-08-10",
+                            dataAdmissao: "2025-08-20",
+                            dataExpiracao: "",
+                            evolucao: "",
+                            motivo: "Novo Documento",
+                            bpoResponsavel: "Gustavo Otacilio Dos Santos",
+                            priorizarStatus: "Priorizar",
+                            priorizarDataAdmissao: "Priorizar",
+                            emProgresso: "",
+                            bpo_validou: "NÃO",
+                            validado: false
+                        },
+                        {
+                            codigo: "135679",
+                            nome: "Ana Paula Oliveira",
+                            cpf: "98765432109",
+                            status: "Validação",
+                            progressao: "50",
+                            dataCriacao: "2025-08-11",
+                            dataAdmissao: "2025-08-22",
+                            dataExpiracao: "",
+                            evolucao: "",
+                            motivo: "Novo Documento",
+                            bpoResponsavel: "Naiane Nairim Silva Dos Santos",
+                            priorizarStatus: "",
+                            priorizarDataAdmissao: "",
+                            emProgresso: "",
+                            bpo_validou: "NÃO",
+                            validado: false
+                        }
+                    ];
+                    
+                    // Add new candidates to the list (only if they don't already exist)
+                    mockNewCandidates.forEach(newCandidate => {
+                        if (!candidates.find(c => c.codigo === newCandidate.codigo)) {
+                            candidates.push(newCandidate);
+                        }
+                    });
+                    
+                    // Update connection status
+                    document.getElementById('connectionStatus').className = 'w-3 h-3 bg-green-500 rounded-full mr-2';
+                    document.getElementById('connectionStatusText').textContent = 'Conectado';
+                    
+                    // Update last sync time
+                    const now = new Date();
+                    document.getElementById('lastSync').textContent = now.toLocaleString('pt-BR');
+                    
+                    // Update UI
+                    updateDashboardStats();
+                    renderCandidatesTable();
+                    updateBPOPerformanceChart();
+                    
+                    // Show success message
+                    showSuccessToast('Dados sincronizados com sucesso!');
+                    
+                } catch (error) {
+                    console.error('Error syncing data:', error);
+                    showErrorToast('Erro ao sincronizar dados. Verifique as configurações.');
+                } finally {
+                    // Reset button
+                    syncButton.innerHTML = originalContent;
+                    syncButton.disabled = false;
+                }
+            }, 2000);
+        }
+        
+        // Update BPO Performance Chart
+        function updateBPOPerformanceChart() {
+            // Count validated candidates by BPO
+            const bpoStats = {};
+            candidates.forEach(candidate => {
+                if (candidate.validado && candidate.bpoResponsavel) {
+                    if (!bpoStats[candidate.bpoResponsavel]) {
+                        bpoStats[candidate.bpoResponsavel] = 0;
+                    }
+                    bpoStats[candidate.bpoResponsavel]++;
+                }
+            });
+            
+            // Also count total candidates by BPO
+            const bpoTotalStats = {};
+            candidates.forEach(candidate => {
+                if (candidate.bpoResponsavel) {
+                    if (!bpoTotalStats[candidate.bpoResponsavel]) {
+                        bpoTotalStats[candidate.bpoResponsavel] = 0;
+                    }
+                    bpoTotalStats[candidate.bpoResponsavel]++;
+                }
+            });
+            
+            const bpoNames = Object.keys(bpoTotalStats);
+            const validatedCounts = bpoNames.map(name => bpoStats[name] || 0);
+            const totalCounts = bpoNames.map(name => bpoTotalStats[name] || 0);
+            
+            window.bpoPerformanceChart.data.labels = bpoNames;
+            window.bpoPerformanceChart.data.datasets[0].data = totalCounts;
+            window.bpoPerformanceChart.data.datasets[1].data = validatedCounts;
+            window.bpoPerformanceChart.update();
+        }
+        
+        // Export BPO Performance Report
+        function exportBPOReport() {
+            // Count validated candidates by BPO
+            const bpoStats = {};
+            const bpoDetails = {};
+            
+            candidates.forEach(candidate => {
+                if (candidate.bpoResponsavel) {
+                    if (!bpoStats[candidate.bpoResponsavel]) {
+                        bpoStats[candidate.bpoResponsavel] = 0;
+                        bpoDetails[candidate.bpoResponsavel] = [];
+                    }
+                    
+                    bpoStats[candidate.bpoResponsavel]++;
+                    
+                    if (candidate.validado) {
+                        bpoDetails[candidate.bpoResponsavel].push({
+                            nome: candidate.nome,
+                            codigo: candidate.codigo,
+                            dataValidacao: candidate.dataAdmissao
+                        });
+                    }
+                }
+            });
+            
+            // Create report data
+            const reportData = [];
+            Object.keys(bpoStats).forEach(bpoName => {
+                reportData.push({
+                    'BPO Responsável': bpoName,
+                    'Total de Candidatos': bpoStats[bpoName],
+                    'Candidatos Validados': bpoDetails[bpoName].length,
+                    'Taxa de Validação': `${((bpoDetails[bpoName].length / bpoStats[bpoName]) * 100).toFixed(1)}%`,
+                    'Detalhes dos Validados': bpoDetails[bpoName].map(c => `${c.nome} (${c.codigo})`).join('; ')
+                });
+            });
+            
+            // In a real implementation, you would generate and download an Excel file here
+            console.log('BPO Performance Report:', reportData);
+            
+            // For demo purposes, show a success message
+            showSuccessToast('Relatório de desempenho por BPO exportado com sucesso!');
+        }
+        
+        // Export report
+        function exportReport(type) {
+            let reportData = [];
+            let reportName = '';
+            
+            switch(type) {
+                case 'candidates':
+                    reportName = 'Relatório de Candidatos';
+                    candidates.forEach(candidate => {
+                        reportData.push({
+                            'Código': candidate.codigo,
+                            'Nome': candidate.nome,
+                            'CPF': formatCPF(candidate.cpf),
+                            'Status': candidate.status,
+                            'Progresso': candidate.progressao + '%',
+                            'Data Admissão': formatDate(candidate.dataAdmissao),
+                            'BPO Responsável': candidate.bpoResponsavel,
+                            'Prioridade': candidate.priorizarStatus || 'Normal',
+                            'Motivo Evolução': candidate.motivo || '-'
+                        });
+                    });
+                    break;
+                    
+                case 'validated':
+                    reportName = 'Relatório de Candidatos Validados';
+                    candidates.filter(c => c.validado).forEach(candidate => {
+                        reportData.push({
+                            'Código': candidate.codigo,
+                            'Nome': candidate.nome,
+                            'CPF': formatCPF(candidate.cpf),
+                            'Data Admissão': formatDate(candidate.dataAdmissao),
+                            'BPO Responsável': candidate.bpoResponsavel,
+                            'Data Validação': formatDate(new Date()) // Simulated
+                        });
+                    });
+                    break;
+                    
+                case 'pending':
+                    reportName = 'Relatório de Candidatos Pendentes';
+                    candidates.filter(c => !c.validado && c.status !== 'Documentos Recusados').forEach(candidate => {
+                        reportData.push({
+                            'Código': candidate.codigo,
+                            'Nome': candidate.nome,
+                            'CPF': formatCPF(candidate.cpf),
+                            'Data Admissão': formatDate(candidate.dataAdmissao),
+                            'BPO Responsável': candidate.bpoResponsavel,
+                            'Prioridade': candidate.priorizarStatus || 'Normal'
+                        });
+                    });
+                    break;
+            }
+            
+            // In a real implementation, you would generate and download an Excel file here
+            console.log(`${reportName}:`, reportData);
+            
+            // For demo purposes, show a success message
+            showSuccessToast(`${reportName} exportado com sucesso!`);
+        }
+        
+        // Generate custom report
+        function generateCustomReport() {
+            const reportType = document.getElementById('customReportType').value;
+            const startDate = document.getElementById('customReportStartDate').value;
+            const endDate = document.getElementById('customReportEndDate').value;
+            const format = document.querySelector('input[name="format"]:checked').value;
+            
+            if (!startDate || !endDate) {
+                showErrorToast('Por favor, selecione as datas inicial e final.');
+                return;
+            }
+            
+            // In a real implementation, you would generate a custom report based on the filters
+            console.log('Generating custom report:', {
+                type: reportType,
+                startDate,
+                endDate,
+                format
+            });
+            
+            // For demo purposes, show a success message
+            showSuccessToast('Relatório personalizado gerado com sucesso!');
+        }
+        
+        // Show success toast
+        function showSuccessToast(message = 'Operação realizada com sucesso!') {
+            const toast = document.getElementById('successToast');
+            document.getElementById('successToastMessage').textContent = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Show error toast
+        function showErrorToast(message = 'Ocorreu um erro!') {
+            const toast = document.getElementById('errorToast');
+            document.getElementById('errorToastMessage').textContent = message;
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+        
+        // Save settings
+        function saveSettings() {
+            const url = document.getElementById('spreadsheetUrl').value;
+            const id = document.getElementById('spreadsheetId').value;
+            const name = document.getElementById('sheetName').value;
+            
+            // Extract ID from URL if not provided
+            let finalId = id;
+            if (!finalId && url) {
+                const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+                if (match) {
+                    finalId = match[1];
+                }
+            }
+            
+            spreadsheetSettings = {
+                url: url,
+                id: finalId,
+                name: name
+            };
+            
+            // Save to localStorage
+            localStorage.setItem('spreadsheetSettings', JSON.stringify(spreadsheetSettings));
+            
+            // Show success message
+            showSettingsToast();
+        }
+        
+        // Load settings
+        function loadSettings() {
+            const saved = localStorage.getItem('spreadsheetSettings');
+            if (saved) {
+                spreadsheetSettings = JSON.parse(saved);
+                
+                // Populate form fields
+                document.getElementById('spreadsheetUrl').value = spreadsheetSettings.url || '';
+                document.getElementById('spreadsheetId').value = spreadsheetSettings.id || '';
+                document.getElementById('sheetName').value = spreadsheetSettings.name || '';
+            }
+        }
+        
+        // Show settings toast
+        function showSettingsToast() {
+            const toast = document.getElementById('settingsToast');
+            toast.classList.remove('hidden');
+            
+            setTimeout(() => {
+                toast.classList.add('hidden');
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
