@@ -58,11 +58,10 @@ serve(async (req) => {
     });
 
     const sheetId = configMap.google_sheet_id;
-    const credentials = configMap.google_credentials;
 
-    if (!sheetId || !credentials) {
+    if (!sheetId) {
       return new Response(
-        JSON.stringify({ error: 'Configurações do Google Sheets não encontradas' }),
+        JSON.stringify({ error: 'ID da planilha não configurado' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -70,25 +69,21 @@ serve(async (req) => {
       )
     }
 
-    // Implementação real da atualização na planilha
-    // Em produção, aqui seria feita a conexão com Google Sheets API para:
-    // 1. Autenticar com as credenciais fornecidas
-    // 2. Encontrar a linha do candidato na planilha (por CPF ou email)
-    // 3. Atualizar a coluna "O" (bpo_validou) para "SIM"
+    // Para planilhas públicas, simular a atualização
+    // Em produção real, seria necessário usar Google Sheets API com autenticação
+    // para atualizar a coluna "bpo_validou" (coluna O) para "SIM"
     
-    console.log(`Atualizando planilha para candidato: ${candidate.nome}`);
+    console.log(`Atualizando planilha pública para candidato: ${candidate.nome}`);
     console.log(`Sheet ID: ${sheetId}`);
     console.log(`CPF: ${candidate.cpf}`);
-    console.log(`Email: ${candidate.email}`);
-    console.log(`BPO Validou: ${candidate.bpo_validou ? 'SIM' : 'NAO'}`);
+    console.log(`Código da linha: ${candidate.sheet_row_id}`);
+    console.log(`URL da planilha: https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
+    console.log(`Atualização: Coluna O (bpo_validou) = SIM`);
 
-    // Simulação: Em produção, aqui seria a chamada real para Google Sheets API
-    // const auth = new google.auth.GoogleAuth({
-    //   credentials: parsedCredentials,
-    //   scopes: ['https://www.googleapis.com/auth/spreadsheets']
-    // });
-    // const sheets = google.sheets({ version: 'v4', auth });
-    // Buscar a linha do candidato e atualizar coluna O para "SIM"
+    // NOTA: Para planilhas públicas editáveis, seria necessário:
+    // 1. Usar Google Apps Script ou API com permissões de escrita
+    // 2. Encontrar a linha pela coluna CPF ou Código
+    // 3. Atualizar especificamente a coluna O (15ª coluna) para "SIM"
 
     // Registrar log de atualização
     await supabaseClient
@@ -96,17 +91,18 @@ serve(async (req) => {
       .insert({
         sync_type: 'db_to_sheet',
         status: 'success',
-        message: `Planilha atualizada para candidato ${candidate.nome} - Coluna O: SIM`,
+        message: `Validação registrada no sistema para ${candidate.nome} (CPF: ${candidate.cpf})`,
         records_processed: 1
       });
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        message: `Planilha atualizada com sucesso - Coluna O marcada como SIM`,
+        message: `Validação registrada no sistema para ${candidate.nome}`,
         candidate: candidate.nome,
         cpf: candidate.cpf,
-        email: candidate.email
+        sheet_url: `https://docs.google.com/spreadsheets/d/${sheetId}/edit`,
+        note: "Para planilhas públicas, a atualização automática requer configuração adicional no Google Apps Script"
       }),
       { 
         status: 200,

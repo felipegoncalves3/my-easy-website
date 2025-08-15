@@ -156,17 +156,17 @@ export const Settings = () => {
               </div>
 
               <div>
-                <Label htmlFor="credentials">Credenciais do Google (JSON)</Label>
-                <Textarea
-                  id="credentials"
-                  value={configs.google_credentials || ''}
-                  onChange={(e) => handleConfigChange('google_credentials', e.target.value)}
-                  placeholder="Cole aqui o JSON das credenciais do Google Cloud"
-                  rows={8}
-                />
-                <p className="text-sm text-muted-foreground mt-1">
-                  Credenciais obtidas no Google Cloud Console para acesso à API do Sheets
-                </p>
+                <Label htmlFor="credentials">Observações sobre Planilhas Públicas</Label>
+                <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
+                  <p className="text-sm text-blue-700 mb-2">
+                    ℹ️ <strong>Planilhas Públicas:</strong>
+                  </p>
+                  <ul className="text-sm text-blue-600 space-y-1">
+                    <li>• O sistema pode <strong>ler</strong> dados de planilhas públicas automaticamente</li>
+                    <li>• Para <strong>atualizar</strong> a coluna "bpo_validou" automaticamente, é necessário configurar um Google Apps Script</li>
+                    <li>• Enquanto isso, as validações são registradas apenas no sistema</li>
+                  </ul>
+                </div>
               </div>
             </CardContent>
           </Card>

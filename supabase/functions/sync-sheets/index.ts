@@ -6,22 +6,21 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-interface CandidateRow {
+interface SheetRow {
+  codigo?: string;
   nome: string;
   cpf?: string;
-  email?: string;
-  telefone?: string;
-  data_nascimento?: string;
-  endereco?: string;
-  cidade?: string;
-  estado?: string;
-  cep?: string;
-  escolaridade?: string;
-  experiencia_anterior?: string;
-  disponibilidade?: string;
-  salario_pretendido?: string;
-  observacoes?: string;
-  status?: string;
+  status_contratacao?: string;
+  progressao_documentos?: string;
+  data_criacao?: string;
+  data_admissao?: string;
+  data_expiracao?: string;
+  evolucao?: string;
+  motivo?: string;
+  bpo_responsavel?: string;
+  priorizar_status?: string;
+  priorizar_data_admissao?: string;
+  em_progresso?: string;
   bpo_validou?: string;
 }
 
@@ -48,20 +47,19 @@ serve(async (req) => {
     });
 
     const sheetId = configMap.google_sheet_id;
-    const credentials = configMap.google_credentials;
 
-    if (!sheetId || !credentials) {
+    if (!sheetId) {
       await supabaseClient
         .from('sync_logs')
         .insert({
           sync_type: 'sheet_to_db',
           status: 'error',
-          message: 'Configurações do Google Sheets não encontradas',
+          message: 'ID da planilha não configurado',
           records_processed: 0
         });
 
       return new Response(
-        JSON.stringify({ error: 'Configurações do Google Sheets não encontradas' }),
+        JSON.stringify({ error: 'ID da planilha não configurado' }),
         { 
           status: 400,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
@@ -69,104 +67,98 @@ serve(async (req) => {
       )
     }
 
-    // Parse das credenciais
-    let parsedCredentials;
+    // Buscar dados da planilha pública
+    let sheetData: SheetRow[] = [];
+    
     try {
-      parsedCredentials = JSON.parse(credentials);
+      // URL para acessar planilha pública em formato CSV
+      const csvUrl = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=0`;
+      
+      console.log(`Buscando dados da planilha: ${csvUrl}`);
+      
+      const response = await fetch(csvUrl);
+      if (!response.ok) {
+        throw new Error(`Erro ao acessar planilha: ${response.status} ${response.statusText}`);
+      }
+      
+      const csvText = await response.text();
+      const lines = csvText.split('\n').filter(line => line.trim() !== '');
+      
+      if (lines.length < 2) {
+        throw new Error('Planilha vazia ou sem dados');
+      }
+      
+      // Pular a primeira linha (cabeçalho) e processar os dados
+      for (let i = 1; i < lines.length; i++) {
+        const columns = lines[i].split(',').map(col => col.replace(/"/g, '').trim());
+        
+        if (columns.length >= 15 && columns[1]) { // Verificar se tem dados suficientes e nome não vazio
+          const row: SheetRow = {
+            codigo: columns[0] || '',
+            nome: columns[1] || '',
+            cpf: columns[2] || '',
+            status_contratacao: columns[3] || '',
+            progressao_documentos: columns[4] || '',
+            data_criacao: columns[5] || '',
+            data_admissao: columns[6] || '',
+            data_expiracao: columns[7] || '',
+            evolucao: columns[8] || '',
+            motivo: columns[9] || '',
+            bpo_responsavel: columns[10] || '',
+            priorizar_status: columns[11] || '',
+            priorizar_data_admissao: columns[12] || '',
+            em_progresso: columns[13] || '',
+            bpo_validou: columns[14] || 'NAO'
+          };
+          
+          sheetData.push(row);
+        }
+      }
+      
+      console.log(`Dados processados da planilha: ${sheetData.length} registros`);
+      
     } catch (error) {
+      console.error('Erro ao buscar dados da planilha:', error);
+      
       await supabaseClient
         .from('sync_logs')
         .insert({
           sync_type: 'sheet_to_db',
           status: 'error',
-          message: 'Credenciais do Google inválidas',
+          message: `Erro ao acessar planilha: ${error.message}`,
           records_processed: 0
         });
 
       return new Response(
-        JSON.stringify({ error: 'Credenciais do Google inválidas' }),
+        JSON.stringify({ error: `Erro ao acessar planilha: ${error.message}` }),
         { 
-          status: 400,
+          status: 500,
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         }
       )
     }
-
-    // Implementar autenticação e leitura do Google Sheets
-    // Por enquanto, vamos simular dados de exemplo para teste
-    const mockSheetData: CandidateRow[] = [
-      {
-        nome: "João Silva",
-        cpf: "12345678900",
-        email: "joao@email.com",
-        telefone: "(11) 99999-9999",
-        data_nascimento: "1990-01-01",
-        cidade: "São Paulo",
-        estado: "SP",
-        escolaridade: "Ensino Médio",
-        disponibilidade: "Integral",
-        status: "pendente",
-        bpo_validou: "NAO"
-      },
-      {
-        nome: "Maria Santos",
-        cpf: "98765432100",
-        email: "maria@email.com",
-        telefone: "(11) 88888-8888",
-        data_nascimento: "1985-05-15",
-        cidade: "Rio de Janeiro",
-        estado: "RJ",
-        escolaridade: "Superior Completo",
-        disponibilidade: "Meio período",
-        status: "pendente",
-        bpo_validou: "NAO"
-      },
-      {
-        nome: "Pedro Costa",
-        cpf: "11122233300",
-        email: "pedro@email.com",
-        telefone: "(11) 77777-7777",
-        data_nascimento: "1992-12-10",
-        cidade: "Belo Horizonte",
-        estado: "MG",
-        escolaridade: "Técnico",
-        disponibilidade: "Integral",
-        status: "pendente",
-        bpo_validou: "NAO"
-      }
-    ];
 
     let processedRecords = 0;
 
     // Processar cada linha da planilha
-    for (const row of mockSheetData) {
+    for (const row of sheetData) {
       try {
-        // Verificar se candidato já existe (por CPF ou email)
+        // Verificar se candidato já existe (por CPF)
         const { data: existingCandidate } = await supabaseClient
           .from('candidates')
-          .select('id')
-          .or(`cpf.eq.${row.cpf},email.eq.${row.email}`)
+          .select('id, bpo_validou')
+          .eq('cpf', row.cpf)
           .maybeSingle();
 
-        if (!existingCandidate && row.nome) {
+        if (!existingCandidate && row.nome && row.cpf) {
           // Inserir novo candidato
           const candidateData = {
             nome: row.nome,
             cpf: row.cpf,
-            email: row.email,
-            telefone: row.telefone,
-            data_nascimento: row.data_nascimento,
-            endereco: row.endereco,
-            cidade: row.cidade,
-            estado: row.estado,
-            cep: row.cep,
-            escolaridade: row.escolaridade,
-            experiencia_anterior: row.experiencia_anterior,
-            disponibilidade: row.disponibilidade,
-            salario_pretendido: row.salario_pretendido ? parseFloat(row.salario_pretendido) : null,
-            observacoes: row.observacoes,
-            status: row.status || 'pendente',
-            bpo_validou: row.bpo_validou === 'SIM'
+            status: row.status_contratacao || 'pendente',
+            bpo_validou: row.bpo_validou === 'SIM',
+            observacoes: `Código: ${row.codigo} | BPO Responsável: ${row.bpo_responsavel} | Motivo: ${row.motivo}`,
+            sheet_row_id: parseInt(row.codigo || '0')
           };
 
           const { error } = await supabaseClient
@@ -175,6 +167,15 @@ serve(async (req) => {
 
           if (!error) {
             processedRecords++;
+          }
+        } else if (existingCandidate) {
+          // Atualizar status de validação se mudou na planilha
+          const newValidationStatus = row.bpo_validou === 'SIM';
+          if (existingCandidate.bpo_validou !== newValidationStatus) {
+            await supabaseClient
+              .from('candidates')
+              .update({ bpo_validou: newValidationStatus })
+              .eq('id', existingCandidate.id);
           }
         }
       } catch (error) {
