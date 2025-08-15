@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Save, RefreshCw } from 'lucide-react';
+import { Save, RefreshCw, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemConfig } from '@/types';
 import { toast } from 'sonner';
@@ -14,6 +14,7 @@ export const Settings = () => {
   const [configs, setConfigs] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const loadConfigs = async () => {
     try {
@@ -64,6 +65,27 @@ export const Settings = () => {
     setConfigs(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleManualSync = async () => {
+    try {
+      setIsSyncing(true);
+      toast.info('Sincronização manual iniciada...');
+      
+      // Chamar edge function de sincronização
+      const { error } = await supabase.functions.invoke('sync-sheets', {
+        body: { type: 'manual' }
+      });
+
+      if (error) throw error;
+
+      toast.success('Sincronização concluída com sucesso!');
+    } catch (error) {
+      console.error('Erro na sincronização:', error);
+      toast.error('Erro na sincronização');
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
   useEffect(() => {
     loadConfigs();
   }, []);
@@ -99,8 +121,25 @@ export const Settings = () => {
 
         <TabsContent value="google-sheets">
           <Card>
-            <CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>Configurações do Google Sheets</CardTitle>
+              <Button 
+                onClick={handleManualSync} 
+                disabled={isSyncing}
+                className="transition-all duration-200 hover:scale-105"
+              >
+                {isSyncing ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Sincronizando...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="mr-2 h-4 w-4" />
+                    Sincronizar Agora
+                  </>
+                )}
+              </Button>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>

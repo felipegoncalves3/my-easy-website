@@ -28,7 +28,7 @@ export const LoginForm = () => {
           <div className="w-16 h-16 rounded-full bg-primary flex items-center justify-center mx-auto mb-4">
             <CheckCircle className="h-8 w-8 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-bold">BPO System</CardTitle>
+          <CardTitle className="text-2xl font-bold">Validação BPO</CardTitle>
           <CardDescription>Sistema de Validação de Candidatos</CardDescription>
         </CardHeader>
         <CardContent>

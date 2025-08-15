@@ -58,4 +58,5 @@ export interface AuthContextType {
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
   isLoading: boolean;
+  hasPermission: (permission: string) => boolean;
 }

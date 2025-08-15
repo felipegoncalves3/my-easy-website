@@ -16,14 +16,16 @@ interface SidebarProps {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) => {
-  const { user, logout } = useAuth();
+  const { user, logout, hasPermission } = useAuth();
 
   const menuItems = [
-    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { id: 'operational', icon: Users, label: 'Painel Operacional' },
-    { id: 'reports', icon: BarChart3, label: 'Relatórios' },
-    { id: 'settings', icon: Settings, label: 'Configurações' },
+    { id: 'dashboard', icon: LayoutDashboard, label: 'Dashboard', permission: 'dashboard' },
+    { id: 'operational', icon: Users, label: 'Painel Operacional', permission: 'operational' },
+    { id: 'reports', icon: BarChart3, label: 'Relatórios', permission: 'reports' },
+    { id: 'settings', icon: Settings, label: 'Configurações', permission: 'settings' },
   ];
+
+  const visibleMenuItems = menuItems.filter(item => hasPermission(item.permission));
 
   return (
     <div className="w-64 h-screen bg-card border-r border-border fixed left-0 top-0 z-10">
@@ -32,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
           <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center">
             <CheckCircle className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="ml-3 text-xl font-bold">BPO System</span>
+          <span className="ml-3 text-xl font-bold">Validação BPO</span>
         </div>
         
         <div className="mb-6 p-3 bg-accent rounded-lg">
@@ -41,7 +43,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
         </div>
         
         <nav className="space-y-2">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentPage === item.id;
             
@@ -49,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
               <Button
                 key={item.id}
                 variant={isActive ? "default" : "ghost"}
-                className="w-full justify-start"
+                className="w-full justify-start transition-all duration-200 hover:scale-105 hover:shadow-md"
                 onClick={() => onPageChange(item.id)}
               >
                 <Icon className="mr-3 h-4 w-4" />

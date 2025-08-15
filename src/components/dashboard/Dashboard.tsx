@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Users, CheckCircle, Clock, AlertCircle, RefreshCw } from 'lucide-react';
+import { Users, CheckCircle, Clock, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Candidate, SyncLog } from '@/types';
 import { toast } from 'sonner';
@@ -61,33 +60,28 @@ export const Dashboard = () => {
     }
   };
 
-  const handleManualSync = async () => {
-    try {
-      toast.info('Sincronização manual iniciada...');
-      
-      // Aqui implementaríamos a sincronização com Google Sheets
-      // Por enquanto, simular sucesso
-      const { error } = await supabase
-        .from('sync_logs')
-        .insert({
-          sync_type: 'manual',
-          status: 'success',
-          message: 'Sincronização manual executada com sucesso',
-          records_processed: 0
-        });
-
-      if (error) throw error;
-
-      toast.success('Sincronização concluída com sucesso');
-      await loadDashboardData();
-    } catch (error) {
-      console.error('Erro na sincronização:', error);
-      toast.error('Erro na sincronização');
-    }
-  };
-
   useEffect(() => {
     loadDashboardData();
+
+    // Configurar tempo real
+    const channel = supabase
+      .channel('dashboard-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'candidates'
+        },
+        () => {
+          loadDashboardData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (isLoading) {
@@ -101,52 +95,53 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">Dashboard</h1>
-        <Button onClick={handleManualSync} variant="outline">
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Sincronizar Agora
-        </Button>
+        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-variant bg-clip-text text-transparent">
+          Dashboard
+        </h1>
+        <div className="text-sm text-muted-foreground bg-primary/10 px-3 py-1 rounded-full">
+          ⚡ Atualização em tempo real
+        </div>
       </div>
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total de Candidatos</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
+            <Users className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
+            <div className="text-2xl font-bold text-primary">{stats.total}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Validados</CardTitle>
-            <CheckCircle className="h-4 w-4 text-green-600" />
+            <CheckCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{stats.validados}</div>
+            <div className="text-2xl font-bold text-primary">{stats.validados}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-yellow-600" />
+            <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{stats.pendentes}</div>
+            <div className="text-2xl font-bold text-muted-foreground">{stats.pendentes}</div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">% Validação</CardTitle>
-            <AlertCircle className="h-4 w-4 text-muted-foreground" />
+            <AlertCircle className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.percentualValidacao}%</div>
+            <div className="text-2xl font-bold text-primary">{stats.percentualValidacao}%</div>
             <Progress value={stats.percentualValidacao} className="mt-2" />
           </CardContent>
         </Card>

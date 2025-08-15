@@ -17,6 +17,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Função para verificar permissões
+  const hasPermission = (permission: string): boolean => {
+    if (!user) return false;
+    
+    const permissions = {
+      'admin': ['dashboard', 'operational', 'reports', 'settings'],
+      'supervisor': ['dashboard', 'operational', 'reports'],
+      'bpo': ['dashboard', 'operational']
+    };
+    
+    return permissions[user.role as keyof typeof permissions]?.includes(permission) || false;
+  };
+
   useEffect(() => {
     // Verificar se há usuário logado no localStorage
     const savedUser = localStorage.getItem('bpo_user');
@@ -79,7 +92,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading, hasPermission }}>
       {children}
     </AuthContext.Provider>
   );
