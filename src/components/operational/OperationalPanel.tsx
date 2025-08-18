@@ -126,7 +126,7 @@ export const OperationalPanel = () => {
     }
 
     // Apply priority filter
-    if (priority) {
+    if (priority && priority !== 'todos') {
       switch (priority) {
         case 'status':
           filtered = filtered.filter(candidate => candidate.priorizar_status);
@@ -378,7 +378,7 @@ export const OperationalPanel = () => {
                     <SelectValue placeholder="Filtrar prioridade" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todos</SelectItem>
+                    <SelectItem value="todos">Todos</SelectItem>
                     <SelectItem value="status">Priorizar Status</SelectItem>
                     <SelectItem value="progresso">Priorizar Progresso ≥60</SelectItem>
                     <SelectItem value="admissao">Priorizar Data Admissão</SelectItem>
