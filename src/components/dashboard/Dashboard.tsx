@@ -93,114 +93,149 @@ export const Dashboard = () => {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-black">
+        <h1 className="text-4xl font-bold text-black animate-slide-up">
           Dashboard
         </h1>
-        <div className="text-sm text-muted-foreground bg-primary/10 px-3 py-1 rounded-full">
+        <div className="text-sm text-muted-foreground bg-primary/10 px-4 py-2 rounded-full border border-primary/20 backdrop-blur-sm animate-scale-in">
           ⚡ Atualização em tempo real
         </div>
       </div>
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
+        <Card className="card-modern hover-glow animate-slide-up" style={{ animationDelay: '100ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total de Candidatos</CardTitle>
-            <Users className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Total de Candidatos</CardTitle>
+            <div className="p-2 rounded-lg bg-primary/10">
+              <Users className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.total}</div>
+            <div className="text-3xl font-bold text-primary mb-1">{stats.total}</div>
+            <p className="text-xs text-muted-foreground">Candidatos cadastrados</p>
           </CardContent>
         </Card>
 
-        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
+        <Card className="card-modern hover-glow animate-slide-up" style={{ animationDelay: '200ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Validados</CardTitle>
-            <CheckCircle className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Validados</CardTitle>
+            <div className="p-2 rounded-lg bg-success/10">
+              <CheckCircle className="h-5 w-5 text-success" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.validados}</div>
+            <div className="text-3xl font-bold text-success mb-1">{stats.validados}</div>
+            <p className="text-xs text-muted-foreground">Candidatos aprovados</p>
           </CardContent>
         </Card>
 
-        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
+        <Card className="card-modern hover-glow animate-slide-up" style={{ animationDelay: '300ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">Pendentes</CardTitle>
+            <div className="p-2 rounded-lg bg-warning/10">
+              <Clock className="h-5 w-5 text-warning" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-muted-foreground">{stats.pendentes}</div>
+            <div className="text-3xl font-bold text-warning mb-1">{stats.pendentes}</div>
+            <p className="text-xs text-muted-foreground">Aguardando validação</p>
           </CardContent>
         </Card>
 
-        <Card className="transition-all duration-300 hover:shadow-lg hover:-translate-y-1 border-primary/20">
+        <Card className="card-modern hover-glow animate-slide-up" style={{ animationDelay: '400ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">% Validação</CardTitle>
-            <AlertCircle className="h-4 w-4 text-primary" />
+            <CardTitle className="text-sm font-semibold text-muted-foreground">% Validação</CardTitle>
+            <div className="p-2 rounded-lg bg-primary/10">
+              <AlertCircle className="h-5 w-5 text-primary" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">{stats.percentualValidacao}%</div>
-            <Progress value={stats.percentualValidacao} className="mt-2" />
+            <div className="text-3xl font-bold text-primary mb-2">{stats.percentualValidacao}%</div>
+            <Progress value={stats.percentualValidacao} className="h-2 bg-muted" />
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Candidatos Recentes */}
-        <Card>
+        <Card className="card-modern animate-slide-up" style={{ animationDelay: '500ms' }}>
           <CardHeader>
-            <CardTitle>Candidatos Recentes</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-primary rounded-full"></div>
+              Candidatos Recentes
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentCandidates.map((candidate) => (
-                <div key={candidate.id} className="flex items-center justify-between">
+              {recentCandidates.map((candidate, index) => (
+                <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors duration-200">
                   <div>
-                    <p className="font-medium">{candidate.nome}</p>
+                    <p className="font-semibold text-foreground">{candidate.nome}</p>
                     <p className="text-sm text-muted-foreground">ID: {candidate.id_contratacao || 'N/A'}</p>
                   </div>
-                  <Badge variant={candidate.bpo_validou ? "default" : "secondary"}>
+                  <Badge 
+                    className={candidate.bpo_validou ? "badge-success" : "badge-pending"}
+                  >
                     {candidate.bpo_validou ? "Validado" : "Pendente"}
                   </Badge>
                 </div>
               ))}
               {recentCandidates.length === 0 && (
-                <p className="text-muted-foreground text-center py-4">
-                  Nenhum candidato encontrado
-                </p>
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                    <Users className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                  <p className="text-muted-foreground">Nenhum candidato encontrado</p>
+                </div>
               )}
             </div>
           </CardContent>
         </Card>
 
         {/* Status da Sincronização */}
-        <Card>
+        <Card className="card-modern animate-slide-up" style={{ animationDelay: '600ms' }}>
           <CardHeader>
-            <CardTitle>Status da Sincronização</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+              Status da Sincronização
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {lastSync ? (
-              <div className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm">Última sincronização:</span>
-                  <Badge variant={lastSync.status === 'success' ? "default" : "destructive"}>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 rounded-lg bg-accent/30">
+                  <span className="text-sm font-medium">Última sincronização:</span>
+                  <Badge className={lastSync.status === 'success' ? "badge-success" : "bg-destructive/10 text-destructive border-destructive/20"}>
                     {lastSync.status === 'success' ? 'Sucesso' : 'Erro'}
                   </Badge>
                 </div>
-                <p className="text-sm text-muted-foreground">
-                  {new Date(lastSync.created_at).toLocaleString('pt-BR')}
-                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="p-3 rounded-lg bg-accent/20">
+                    <p className="text-xs text-muted-foreground">Data/Hora</p>
+                    <p className="text-sm font-medium">
+                      {new Date(lastSync.created_at).toLocaleString('pt-BR')}
+                    </p>
+                  </div>
+                  <div className="p-3 rounded-lg bg-accent/20">
+                    <p className="text-xs text-muted-foreground">Registros</p>
+                    <p className="text-sm font-medium">{lastSync.records_processed}</p>
+                  </div>
+                </div>
                 {lastSync.message && (
-                  <p className="text-sm">{lastSync.message}</p>
+                  <div className="p-3 rounded-lg bg-primary/5 border border-primary/20">
+                    <p className="text-sm text-primary">{lastSync.message}</p>
+                  </div>
                 )}
-                <p className="text-sm text-muted-foreground">
-                  Registros processados: {lastSync.records_processed}
-                </p>
               </div>
             ) : (
-              <p className="text-muted-foreground">Nenhuma sincronização realizada ainda</p>
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <AlertCircle className="h-8 w-8 text-muted-foreground" />
+                </div>
+                <p className="text-muted-foreground">Nenhuma sincronização realizada ainda</p>
+              </div>
             )}
           </CardContent>
         </Card>

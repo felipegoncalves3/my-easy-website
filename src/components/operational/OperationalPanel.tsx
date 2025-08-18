@@ -206,36 +206,46 @@ export const OperationalPanel = () => {
 
   const renderCandidateTable = (showPriorityColumns = false) => (
     <div className="overflow-x-auto">
-      <Table className="w-auto text-sm"> {/* Reduce font size by 30% */}
+      <Table className="w-auto text-sm table-modern"> {/* Reduce font size by 30% */}
         <TableHeader>
-          <TableRow>
-            <TableHead className="text-xs w-auto whitespace-nowrap">ID Contratação</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">Nome</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">CPF</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">Status Contratação</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">Motivo</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">Progresso Docs</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">BPO Responsável</TableHead>
+          <TableRow className="hover:bg-transparent border-b border-border/30">
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">ID Contratação</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Nome</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">CPF</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status Contratação</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Motivo</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Progresso Docs</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">BPO Responsável</TableHead>
             {showPriorityColumns && (
               <>
-                <TableHead className="text-xs w-auto whitespace-nowrap">Progresso ≥60</TableHead>
-                <TableHead className="text-xs w-auto whitespace-nowrap">Priorizar Data</TableHead>
-                <TableHead className="text-xs w-auto whitespace-nowrap">Priorizar Status</TableHead>
+                <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Progresso ≥60</TableHead>
+                <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Priorizar Data</TableHead>
+                <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Priorizar Status</TableHead>
               </>
             )}
-            <TableHead className="text-xs w-auto whitespace-nowrap">Status</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap">Ações</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {paginatedCandidates.map((candidate) => (
-            <TableRow key={candidate.id}>
+            <TableRow key={candidate.id} className="table-row-modern">
               <TableCell className="font-medium text-xs whitespace-nowrap">{candidate.id_contratacao || 'N/A'}</TableCell>
               <TableCell className="font-medium text-xs whitespace-nowrap">{candidate.nome}</TableCell>
-              <TableCell className="text-xs whitespace-nowrap">{candidate.cpf || 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap font-mono">{candidate.cpf || 'N/A'}</TableCell>
               <TableCell className="text-xs whitespace-nowrap">{candidate.status_contratacao || 'N/A'}</TableCell>
               <TableCell className="text-xs whitespace-nowrap">{candidate.motivo || 'N/A'}</TableCell>
-              <TableCell className="text-xs whitespace-nowrap">{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                  <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{ width: `${candidate.progresso_documentos || 0}%` }}
+                    />
+                  </div>
+                  <span className="text-xs">{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</span>
+                </div>
+              </TableCell>
               <TableCell className="text-xs whitespace-nowrap">{candidate.bpo_responsavel || 'N/A'}</TableCell>
               {showPriorityColumns && (
                 <>
@@ -246,8 +256,7 @@ export const OperationalPanel = () => {
               )}
               <TableCell className="whitespace-nowrap">
                 <Badge 
-                  variant={candidate.bpo_validou ? "default" : "secondary"}
-                  className={!candidate.bpo_validou ? "bg-orange-500 hover:bg-orange-600 text-xs" : "text-xs"}
+                  className={candidate.bpo_validou ? "badge-success" : "badge-pending"}
                 >
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
