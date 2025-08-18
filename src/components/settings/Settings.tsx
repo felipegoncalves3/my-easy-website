@@ -9,6 +9,7 @@ import { Save, RefreshCw, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { SystemConfig } from '@/types';
 import { toast } from 'sonner';
+import { UserManagement } from './UserManagement';
 
 export const Settings = () => {
   const [configs, setConfigs] = useState<Record<string, string>>({});
@@ -156,15 +157,42 @@ export const Settings = () => {
               </div>
 
               <div>
-                <Label htmlFor="credentials">Observações sobre Planilhas Públicas</Label>
+                <Label htmlFor="google-client-id">Client ID do Google</Label>
+                <Input
+                  id="google-client-id"
+                  value={configs.google_client_id || ''}
+                  onChange={(e) => handleConfigChange('google_client_id', e.target.value)}
+                  placeholder="Insira o Client ID da conta Google"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Client ID obtido no Google Cloud Console
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="google-client-secret">Client Secret do Google</Label>
+                <Input
+                  id="google-client-secret"
+                  type="password"
+                  value={configs.google_client_secret || ''}
+                  onChange={(e) => handleConfigChange('google_client_secret', e.target.value)}
+                  placeholder="Insira o Client Secret da conta Google"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  Client Secret obtido no Google Cloud Console
+                </p>
+              </div>
+
+              <div>
+                <Label htmlFor="credentials">Observações sobre Integração Google</Label>
                 <div className="bg-blue-50 border border-blue-200 p-4 rounded-lg">
                   <p className="text-sm text-blue-700 mb-2">
-                    ℹ️ <strong>Planilhas Públicas:</strong>
+                    ℹ️ <strong>Configuração necessária:</strong>
                   </p>
                   <ul className="text-sm text-blue-600 space-y-1">
-                    <li>• O sistema pode <strong>ler</strong> dados de planilhas públicas automaticamente</li>
-                    <li>• Para <strong>atualizar</strong> a coluna "bpo_validou" automaticamente, é necessário configurar um Google Apps Script</li>
-                    <li>• Enquanto isso, as validações são registradas apenas no sistema</li>
+                    <li>• Configure as credenciais no Google Cloud Console</li>
+                    <li>• O sistema precisa das credenciais para atualizar a planilha</li>
+                    <li>• Após configurar, as validações serão gravadas automaticamente na coluna O</li>
                   </ul>
                 </div>
               </div>
@@ -207,34 +235,7 @@ export const Settings = () => {
         </TabsContent>
 
         <TabsContent value="users">
-          <Card>
-            <CardHeader>
-              <CardTitle>Gerenciamento de Usuários</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <p className="text-muted-foreground">
-                  Para adicionar novos usuários, insira diretamente na tabela 'users' do banco de dados.
-                </p>
-                
-                <div className="bg-muted p-4 rounded-lg">
-                  <h4 className="font-medium mb-2">Usuário Padrão:</h4>
-                  <ul className="text-sm space-y-1">
-                    <li><strong>Usuário:</strong> admin</li>
-                    <li><strong>Senha:</strong> admin123</li>
-                    <li><strong>Perfil:</strong> Administrador</li>
-                  </ul>
-                </div>
-
-                <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
-                  <h4 className="font-medium text-yellow-800 mb-2">⚠️ Importante:</h4>
-                  <p className="text-sm text-yellow-700">
-                    Altere a senha padrão após o primeiro acesso e implemente hash de senhas para ambiente de produção.
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <UserManagement />
         </TabsContent>
       </Tabs>
     </div>
