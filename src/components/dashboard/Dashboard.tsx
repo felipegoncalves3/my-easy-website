@@ -176,7 +176,7 @@ export const Dashboard = () => {
                     <p className="text-sm text-muted-foreground">ID: {candidate.id_contratacao || 'N/A'}</p>
                   </div>
                   <Badge 
-                    className={candidate.bpo_validou ? "badge-success" : "badge-pending"}
+                    className={candidate.bpo_validou ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"}
                   >
                     {candidate.bpo_validou ? "Validado" : "Pendente"}
                   </Badge>

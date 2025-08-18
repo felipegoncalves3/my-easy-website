@@ -239,7 +239,9 @@ export const OperationalPanel = () => {
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
-                      className="h-full bg-primary transition-all duration-300"
+                      className={`h-full transition-all duration-300 ${
+                        (candidate.progresso_documentos || 0) < 60 ? 'bg-warning' : 'bg-primary'
+                      }`}
                       style={{ width: `${candidate.progresso_documentos || 0}%` }}
                     />
                   </div>
@@ -256,7 +258,7 @@ export const OperationalPanel = () => {
               )}
               <TableCell className="whitespace-nowrap">
                 <Badge 
-                  className={candidate.bpo_validou ? "badge-success" : "badge-pending"}
+                  className={candidate.bpo_validou ? "bg-success/10 text-success border-success/20" : "bg-warning/10 text-warning border-warning/20"}
                 >
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
