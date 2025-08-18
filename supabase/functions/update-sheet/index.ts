@@ -57,17 +57,8 @@ serve(async (req) => {
       configMap[config.config_key] = config.config_value || '';
     });
 
-    const sheetId = configMap.google_sheet_id;
-
-    if (!sheetId) {
-      return new Response(
-        JSON.stringify({ error: 'ID da planilha não configurado' }),
-        { 
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        }
-      )
-    }
+    // Use the specific sheet ID from the provided URL
+    const sheetId = '1xSqq_vOQfxlbsLHbzX3bHimRNq_IeDxCsdAW5R-AowI';
 
     // Para planilhas públicas, simular a atualização
     // Em produção real, seria necessário usar Google Sheets API com autenticação
@@ -76,13 +67,13 @@ serve(async (req) => {
     console.log(`Atualizando planilha pública para candidato: ${candidate.nome}`);
     console.log(`Sheet ID: ${sheetId}`);
     console.log(`CPF: ${candidate.cpf}`);
-    console.log(`Código da linha: ${candidate.sheet_row_id}`);
+    console.log(`ID Contratação (Código): ${candidate.id_contratacao}`);
     console.log(`URL da planilha: https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
-    console.log(`Atualização: Coluna O (bpo_validou) = SIM`);
+    console.log(`Atualização necessária: Encontrar linha onde coluna A (Código) = ${candidate.id_contratacao} e atualizar coluna O (bpo_validou) = SIM`);
 
     // NOTA: Para planilhas públicas editáveis, seria necessário:
     // 1. Usar Google Apps Script ou API com permissões de escrita
-    // 2. Encontrar a linha pela coluna CPF ou Código
+    // 2. Encontrar a linha pela coluna A (Código) com valor ${candidate.id_contratacao}
     // 3. Atualizar especificamente a coluna O (15ª coluna) para "SIM"
 
     // Registrar log de atualização
@@ -91,7 +82,7 @@ serve(async (req) => {
       .insert({
         sync_type: 'db_to_sheet',
         status: 'success',
-        message: `Validação registrada no sistema para ${candidate.nome} (CPF: ${candidate.cpf})`,
+        message: `Validação registrada no sistema para ${candidate.nome} (ID: ${candidate.id_contratacao})`,
         records_processed: 1
       });
 
@@ -100,7 +91,7 @@ serve(async (req) => {
         success: true, 
         message: `Validação registrada no sistema para ${candidate.nome}`,
         candidate: candidate.nome,
-        cpf: candidate.cpf,
+        id_contratacao: candidate.id_contratacao,
         sheet_url: `https://docs.google.com/spreadsheets/d/${sheetId}/edit`,
         note: "Para planilhas públicas, a atualização automática requer configuração adicional no Google Apps Script"
       }),
