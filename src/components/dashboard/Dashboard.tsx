@@ -95,7 +95,7 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-variant bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold text-black">
           Dashboard
         </h1>
         <div className="text-sm text-muted-foreground bg-primary/10 px-3 py-1 rounded-full">
