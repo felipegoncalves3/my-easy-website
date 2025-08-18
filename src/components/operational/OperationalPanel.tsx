@@ -206,45 +206,45 @@ export const OperationalPanel = () => {
 
   const renderCandidateTable = (showPriorityColumns = false) => (
     <div className="overflow-x-auto">
-      <Table className="text-sm"> {/* Reduce font size by 30% */}
+      <Table className="w-auto text-sm"> {/* Reduce font size by 30% */}
         <TableHeader>
           <TableRow>
-            <TableHead className="text-xs">ID Contratação</TableHead>
-            <TableHead className="text-xs">Nome</TableHead>
-            <TableHead className="text-xs">CPF</TableHead>
-            <TableHead className="text-xs">Status Contratação</TableHead>
-            <TableHead className="text-xs">Motivo</TableHead>
-            <TableHead className="text-xs">Progresso Docs</TableHead>
-            <TableHead className="text-xs">BPO Responsável</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">ID Contratação</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">Nome</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">CPF</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">Status Contratação</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">Motivo</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">Progresso Docs</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">BPO Responsável</TableHead>
             {showPriorityColumns && (
               <>
-                <TableHead className="text-xs">Progresso ≥60</TableHead>
-                <TableHead className="text-xs">Priorizar Data</TableHead>
-                <TableHead className="text-xs">Priorizar Status</TableHead>
+                <TableHead className="text-xs w-auto whitespace-nowrap">Progresso ≥60</TableHead>
+                <TableHead className="text-xs w-auto whitespace-nowrap">Priorizar Data</TableHead>
+                <TableHead className="text-xs w-auto whitespace-nowrap">Priorizar Status</TableHead>
               </>
             )}
-            <TableHead className="text-xs">Status</TableHead>
-            <TableHead className="text-xs">Ações</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">Status</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {paginatedCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
-              <TableCell className="font-medium text-xs">{candidate.id_contratacao || 'N/A'}</TableCell>
-              <TableCell className="font-medium text-xs">{candidate.nome}</TableCell>
-              <TableCell className="text-xs">{candidate.cpf || 'N/A'}</TableCell>
-              <TableCell className="text-xs">{candidate.status_contratacao || 'N/A'}</TableCell>
-              <TableCell className="text-xs">{candidate.motivo || 'N/A'}</TableCell>
-              <TableCell className="text-xs">{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</TableCell>
-              <TableCell className="text-xs">{candidate.bpo_responsavel || 'N/A'}</TableCell>
+              <TableCell className="font-medium text-xs whitespace-nowrap">{candidate.id_contratacao || 'N/A'}</TableCell>
+              <TableCell className="font-medium text-xs whitespace-nowrap">{candidate.nome}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap">{candidate.cpf || 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap">{candidate.status_contratacao || 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap">{candidate.motivo || 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap">{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap">{candidate.bpo_responsavel || 'N/A'}</TableCell>
               {showPriorityColumns && (
                 <>
-                  <TableCell className="text-xs">{candidate.em_progresso_ge_60 || 'N/A'}</TableCell>
-                  <TableCell className="text-xs">{candidate.priorizar_data_admissao || 'N/A'}</TableCell>
-                  <TableCell className="text-xs">{candidate.priorizar_status || 'N/A'}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{candidate.em_progresso_ge_60 || 'N/A'}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{candidate.priorizar_data_admissao || 'N/A'}</TableCell>
+                  <TableCell className="text-xs whitespace-nowrap">{candidate.priorizar_status || 'N/A'}</TableCell>
                 </>
               )}
-              <TableCell>
+              <TableCell className="whitespace-nowrap">
                 <Badge 
                   variant={candidate.bpo_validou ? "default" : "secondary"}
                   className={!candidate.bpo_validou ? "bg-orange-500 hover:bg-orange-600 text-xs" : "text-xs"}
@@ -252,7 +252,7 @@ export const OperationalPanel = () => {
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
               </TableCell>
-              <TableCell>
+              <TableCell className="whitespace-nowrap">
                 <div className="flex space-x-2">
                   <Dialog>
                     <DialogTrigger asChild>

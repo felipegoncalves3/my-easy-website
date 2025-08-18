@@ -370,24 +370,24 @@ export const UserManagement = () => {
         </Dialog>
       </CardHeader>
       <CardContent>
-        <Table>
+        <Table className="w-auto">
           <TableHeader>
             <TableRow>
-              <TableHead>Nome</TableHead>
-              <TableHead>Usuário</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Perfil</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Ações</TableHead>
+              <TableHead className="w-auto whitespace-nowrap">Nome</TableHead>
+              <TableHead className="w-auto whitespace-nowrap">Usuário</TableHead>
+              <TableHead className="w-auto whitespace-nowrap">Email</TableHead>
+              <TableHead className="w-auto whitespace-nowrap">Perfil</TableHead>
+              <TableHead className="w-auto whitespace-nowrap">Status</TableHead>
+              <TableHead className="w-auto whitespace-nowrap">Ações</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {users.map((user) => (
               <TableRow key={user.id}>
-                <TableCell className="font-medium">{user.full_name}</TableCell>
-                <TableCell>{user.username}</TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{user.full_name}</TableCell>
+                <TableCell className="whitespace-nowrap">{user.username}</TableCell>
+                <TableCell className="whitespace-nowrap">{user.email}</TableCell>
+                <TableCell className="whitespace-nowrap">
                   <span className={`px-2 py-1 rounded-full text-xs ${
                     user.role === 'admin' ? 'bg-red-100 text-red-800' :
                     user.role === 'operator' ? 'bg-blue-100 text-blue-800' :
@@ -397,14 +397,14 @@ export const UserManagement = () => {
                      user.role === 'operator' ? 'Operador' : 'Visualizador'}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <span className={`px-2 py-1 rounded-full text-xs ${
                     user.is_active ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                   }`}>
                     {user.is_active ? 'Ativo' : 'Inativo'}
                   </span>
                 </TableCell>
-                <TableCell>
+                <TableCell className="whitespace-nowrap">
                   <div className="flex gap-2">
                     <Button
                       size="sm"
