@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Plus, UserCheck, UserX, Trash2 } from 'lucide-react';
+import { Plus, UserCheck, UserX, Trash2, Edit } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { User } from '@/types';
 import { toast } from 'sonner';
@@ -15,12 +15,21 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const [newUser, setNewUser] = useState({
     username: '',
     email: '',
     full_name: '',
     password: '',
     confirmPassword: '',
+    role: 'operator',
+    department: ''
+  });
+  const [editUser, setEditUser] = useState({
+    username: '',
+    email: '',
+    full_name: '',
     role: 'operator',
     department: ''
   });
@@ -123,6 +132,54 @@ export const UserManagement = () => {
     } catch (error) {
       console.error('Erro ao excluir usuário:', error);
       toast.error('Erro ao excluir usuário');
+    }
+  };
+
+  const openEditDialog = (user: User) => {
+    setEditingUser(user);
+    setEditUser({
+      username: user.username,
+      email: user.email,
+      full_name: user.full_name,
+      role: user.role,
+      department: user.department || ''
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const updateUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      if (!editUser.username || !editUser.email || !editUser.full_name) {
+        toast.error('Todos os campos obrigatórios devem ser preenchidos');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('users')
+        .update({
+          username: editUser.username,
+          email: editUser.email,
+          full_name: editUser.full_name,
+          role: editUser.role,
+          department: editUser.department || null
+        })
+        .eq('id', editingUser.id);
+
+      if (error) throw error;
+
+      toast.success('Usuário atualizado com sucesso!');
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      loadUsers();
+    } catch (error: any) {
+      console.error('Erro ao atualizar usuário:', error);
+      if (error.code === '23505') {
+        toast.error('Usuário ou email já existe');
+      } else {
+        toast.error('Erro ao atualizar usuário');
+      }
     }
   };
 
@@ -240,6 +297,77 @@ export const UserManagement = () => {
             </div>
           </DialogContent>
         </Dialog>
+        
+        <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Editar Usuário</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit_full_name">Nome Completo *</Label>
+                <Input
+                  id="edit_full_name"
+                  value={editUser.full_name}
+                  onChange={(e) => setEditUser(prev => ({ ...prev, full_name: e.target.value }))}
+                  placeholder="Nome completo do usuário"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit_username">Usuário *</Label>
+                <Input
+                  id="edit_username"
+                  value={editUser.username}
+                  onChange={(e) => setEditUser(prev => ({ ...prev, username: e.target.value }))}
+                  placeholder="Nome de usuário"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit_email">Email *</Label>
+                <Input
+                  id="edit_email"
+                  type="email"
+                  value={editUser.email}
+                  onChange={(e) => setEditUser(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit_role">Perfil</Label>
+                <Select 
+                  value={editUser.role} 
+                  onValueChange={(value) => setEditUser(prev => ({ ...prev, role: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="admin">Administrador</SelectItem>
+                    <SelectItem value="operator">Operador</SelectItem>
+                    <SelectItem value="viewer">Visualizador</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit_department">Departamento</Label>
+                <Input
+                  id="edit_department"
+                  value={editUser.department}
+                  onChange={(e) => setEditUser(prev => ({ ...prev, department: e.target.value }))}
+                  placeholder="Departamento (opcional)"
+                />
+              </div>
+
+              <Button onClick={updateUser} className="w-full">
+                Atualizar Usuário
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </CardHeader>
       <CardContent>
         <Table>
@@ -278,6 +406,13 @@ export const UserManagement = () => {
                 </TableCell>
                 <TableCell>
                   <div className="flex gap-2">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => openEditDialog(user)}
+                    >
+                      <Edit className="h-4 w-4" />
+                    </Button>
                     <Button
                       size="sm"
                       variant="outline"

@@ -23,8 +23,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     
     const permissions = {
       'admin': ['dashboard', 'operational', 'reports', 'settings'],
-      'supervisor': ['dashboard', 'operational', 'reports'],
-      'bpo': ['dashboard', 'operational']
+      'viewer': ['dashboard', 'operational', 'reports'],
+      'operator': ['dashboard', 'operational']
     };
     
     return permissions[user.role as keyof typeof permissions]?.includes(permission) || false;
