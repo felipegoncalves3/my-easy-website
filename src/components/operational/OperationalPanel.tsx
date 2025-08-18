@@ -258,7 +258,7 @@ export const OperationalPanel = () => {
               )}
               <TableCell className="whitespace-nowrap">
                 <Badge 
-                  className={candidate.bpo_validou ? "bg-success/10 text-success border-success/20" : "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-secondary-foreground bg-orange-500 hover:bg-orange-600 text-xs"}
+                  className={candidate.bpo_validou ? "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 text-xs" : "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-secondary-foreground bg-orange-500 hover:bg-orange-600 text-xs"}
                 >
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
