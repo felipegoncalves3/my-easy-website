@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, CheckCircle, Filter } from 'lucide-react';
+import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Candidate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,11 +29,14 @@ import { toast } from 'sonner';
 export const OperationalPanel = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [filteredCandidates, setFilteredCandidates] = useState<Candidate[]>([]);
+  const [paginatedCandidates, setPaginatedCandidates] = useState<Candidate[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pendentes');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
   const { user } = useAuth();
 
   const loadCandidates = async () => {
@@ -141,6 +144,19 @@ export const OperationalPanel = () => {
     }
 
     setFilteredCandidates(filtered);
+    setCurrentPage(1); // Reset to first page when filters change
+  };
+
+  const paginateResults = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    setPaginatedCandidates(filteredCandidates.slice(startIndex, endIndex));
+  };
+
+  const totalPages = Math.ceil(filteredCandidates.length / itemsPerPage);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
   };
 
   const handleTabChange = (tab: string) => {
@@ -176,6 +192,10 @@ export const OperationalPanel = () => {
     applyFilters(searchTerm, priorityFilter, activeTab);
   }, [candidates, activeTab]);
 
+  useEffect(() => {
+    paginateResults();
+  }, [filteredCandidates, currentPage]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -186,48 +206,48 @@ export const OperationalPanel = () => {
 
   const renderCandidateTable = (showPriorityColumns = false) => (
     <div className="overflow-x-auto">
-      <Table>
+      <Table className="text-sm"> {/* Reduce font size by 30% */}
         <TableHeader>
           <TableRow>
-            <TableHead>ID Contratação</TableHead>
-            <TableHead>Nome</TableHead>
-            <TableHead>CPF</TableHead>
-            <TableHead>Status Contratação</TableHead>
-            <TableHead>Motivo</TableHead>
-            <TableHead>Progresso Docs</TableHead>
-            <TableHead>BPO Responsável</TableHead>
+            <TableHead className="text-xs">ID Contratação</TableHead>
+            <TableHead className="text-xs">Nome</TableHead>
+            <TableHead className="text-xs">CPF</TableHead>
+            <TableHead className="text-xs">Status Contratação</TableHead>
+            <TableHead className="text-xs">Motivo</TableHead>
+            <TableHead className="text-xs">Progresso Docs</TableHead>
+            <TableHead className="text-xs">BPO Responsável</TableHead>
             {showPriorityColumns && (
               <>
-                <TableHead>Progresso ≥60</TableHead>
-                <TableHead>Priorizar Data</TableHead>
-                <TableHead>Priorizar Status</TableHead>
+                <TableHead className="text-xs">Progresso ≥60</TableHead>
+                <TableHead className="text-xs">Priorizar Data</TableHead>
+                <TableHead className="text-xs">Priorizar Status</TableHead>
               </>
             )}
-            <TableHead>Status</TableHead>
-            <TableHead>Ações</TableHead>
+            <TableHead className="text-xs">Status</TableHead>
+            <TableHead className="text-xs">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {filteredCandidates.map((candidate) => (
+          {paginatedCandidates.map((candidate) => (
             <TableRow key={candidate.id}>
-              <TableCell className="font-medium">{candidate.id_contratacao || 'N/A'}</TableCell>
-              <TableCell className="font-medium">{candidate.nome}</TableCell>
-              <TableCell>{candidate.cpf || 'N/A'}</TableCell>
-              <TableCell>{candidate.status_contratacao || 'N/A'}</TableCell>
-              <TableCell>{candidate.motivo || 'N/A'}</TableCell>
-              <TableCell>{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</TableCell>
-              <TableCell>{candidate.bpo_responsavel || 'N/A'}</TableCell>
+              <TableCell className="font-medium text-xs">{candidate.id_contratacao || 'N/A'}</TableCell>
+              <TableCell className="font-medium text-xs">{candidate.nome}</TableCell>
+              <TableCell className="text-xs">{candidate.cpf || 'N/A'}</TableCell>
+              <TableCell className="text-xs">{candidate.status_contratacao || 'N/A'}</TableCell>
+              <TableCell className="text-xs">{candidate.motivo || 'N/A'}</TableCell>
+              <TableCell className="text-xs">{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</TableCell>
+              <TableCell className="text-xs">{candidate.bpo_responsavel || 'N/A'}</TableCell>
               {showPriorityColumns && (
                 <>
-                  <TableCell>{candidate.em_progresso_ge_60 || 'N/A'}</TableCell>
-                  <TableCell>{candidate.priorizar_data_admissao || 'N/A'}</TableCell>
-                  <TableCell>{candidate.priorizar_status || 'N/A'}</TableCell>
+                  <TableCell className="text-xs">{candidate.em_progresso_ge_60 || 'N/A'}</TableCell>
+                  <TableCell className="text-xs">{candidate.priorizar_data_admissao || 'N/A'}</TableCell>
+                  <TableCell className="text-xs">{candidate.priorizar_status || 'N/A'}</TableCell>
                 </>
               )}
               <TableCell>
                 <Badge 
                   variant={candidate.bpo_validou ? "default" : "secondary"}
-                  className={!candidate.bpo_validou ? "bg-orange-500 hover:bg-orange-600" : ""}
+                  className={!candidate.bpo_validou ? "bg-orange-500 hover:bg-orange-600 text-xs" : "text-xs"}
                 >
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
@@ -240,8 +260,9 @@ export const OperationalPanel = () => {
                         variant="outline"
                         size="sm"
                         onClick={() => setSelectedCandidate(candidate)}
+                        className="text-xs"
                       >
-                        <Eye className="h-4 w-4" />
+                        <Eye className="h-3 w-3" />
                       </Button>
                     </DialogTrigger>
                     <DialogContent className="max-w-4xl">
@@ -330,9 +351,9 @@ export const OperationalPanel = () => {
                       variant="default"
                       size="sm"
                       onClick={() => handleValidateCandidate(candidate.id)}
-                      className="transition-all duration-200 hover:scale-105 bg-primary hover:bg-primary/90"
+                      className="transition-all duration-200 hover:scale-105 bg-primary hover:bg-primary/90 text-xs"
                     >
-                      <CheckCircle className="h-4 w-4 mr-1" />
+                      <CheckCircle className="h-3 w-3 mr-1" />
                       Validar
                     </Button>
                   )}
@@ -343,11 +364,67 @@ export const OperationalPanel = () => {
         </TableBody>
       </Table>
       
-      {filteredCandidates.length === 0 && (
+      {paginatedCandidates.length === 0 && (
         <div className="text-center py-8 text-muted-foreground">
           {searchTerm ? 'Nenhum candidato encontrado' : 'Nenhum candidato cadastrado'}
         </div>
       )}
+
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-center space-x-2 mt-6">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="text-xs"
+          >
+            <ChevronLeft className="h-3 w-3" />
+          </Button>
+          
+          <div className="flex items-center space-x-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              let pageNum;
+              if (totalPages <= 5) {
+                pageNum = i + 1;
+              } else if (currentPage <= 3) {
+                pageNum = i + 1;
+              } else if (currentPage >= totalPages - 2) {
+                pageNum = totalPages - 4 + i;
+              } else {
+                pageNum = currentPage - 2 + i;
+              }
+
+              return (
+                <Button
+                  key={pageNum}
+                  variant={currentPage === pageNum ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(pageNum)}
+                  className="text-xs w-8 h-8"
+                >
+                  {pageNum}
+                </Button>
+              );
+            })}
+          </div>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="text-xs"
+          >
+            <ChevronRight className="h-3 w-3" />
+          </Button>
+        </div>
+      )}
+
+      <div className="text-center mt-4 text-xs text-muted-foreground">
+        Mostrando {Math.min((currentPage - 1) * itemsPerPage + 1, filteredCandidates.length)} - {Math.min(currentPage * itemsPerPage, filteredCandidates.length)} de {filteredCandidates.length} itens
+      </div>
     </div>
   );
 

@@ -59,22 +59,64 @@ serve(async (req) => {
 
     // Use the specific sheet ID from the provided URL
     const sheetId = '1xSqq_vOQfxlbsLHbzX3bHimRNq_IeDxCsdAW5R-AowI';
+    const apiKey = Deno.env.get('GOOGLE_SHEETS_API_KEY');
 
-    // Para planilhas públicas, simular a atualização
-    // Em produção real, seria necessário usar Google Sheets API com autenticação
-    // para atualizar a coluna "bpo_validou" (coluna O) para "SIM"
-    
-    console.log(`Atualizando planilha pública para candidato: ${candidate.nome}`);
-    console.log(`Sheet ID: ${sheetId}`);
-    console.log(`CPF: ${candidate.cpf}`);
-    console.log(`ID Contratação (Código): ${candidate.id_contratacao}`);
-    console.log(`URL da planilha: https://docs.google.com/spreadsheets/d/${sheetId}/edit`);
-    console.log(`Atualização necessária: Encontrar linha onde coluna A (Código) = ${candidate.id_contratacao} e atualizar coluna O (bpo_validou) = SIM`);
+    if (!apiKey) {
+      console.error('Google Sheets API key not configured');
+      throw new Error('Google Sheets API key not configured');
+    }
 
-    // NOTA: Para planilhas públicas editáveis, seria necessário:
-    // 1. Usar Google Apps Script ou API com permissões de escrita
-    // 2. Encontrar a linha pela coluna A (Código) com valor ${candidate.id_contratacao}
-    // 3. Atualizar especificamente a coluna O (15ª coluna) para "SIM"
+    try {
+      // Get all data from the sheet to find the row with matching id_contratacao
+      const getResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/A:O?key=${apiKey}`
+      );
+
+      if (!getResponse.ok) {
+        throw new Error(`Failed to read sheet: ${getResponse.statusText}`);
+      }
+
+      const data = await getResponse.json();
+      const rows = data.values || [];
+
+      // Find the row where column A (index 0) matches id_contratacao
+      let targetRowIndex = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i][0] && rows[i][0].toString() === candidate.id_contratacao?.toString()) {
+          targetRowIndex = i + 1; // Sheet rows are 1-indexed
+          break;
+        }
+      }
+
+      if (targetRowIndex === -1) {
+        throw new Error(`Candidato com ID ${candidate.id_contratacao} não encontrado na planilha`);
+      }
+
+      // Update column O (index 14) in the found row
+      const updateResponse = await fetch(
+        `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/O${targetRowIndex}?valueInputOption=RAW&key=${apiKey}`,
+        {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            values: [['SIM']]
+          })
+        }
+      );
+
+      if (!updateResponse.ok) {
+        throw new Error(`Failed to update sheet: ${updateResponse.statusText}`);
+      }
+
+      console.log(`Planilha atualizada com sucesso para candidato: ${candidate.nome}`);
+      console.log(`Linha ${targetRowIndex}, Coluna O atualizada com "SIM"`);
+
+    } catch (sheetError) {
+      console.error('Erro ao atualizar planilha:', sheetError);
+      throw new Error(`Erro ao atualizar planilha: ${sheetError.message}`);
+    }
 
     // Registrar log de atualização
     await supabaseClient
