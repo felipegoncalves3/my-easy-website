@@ -51,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentPage, onPageChange }) =
               <Button
                 key={item.id}
                 variant={isActive ? "default" : "ghost"}
-                className="w-full justify-start transition-all duration-200 hover:scale-105 hover:shadow-md"
+                className="w-full justify-start transition-all duration-200"
                 onClick={() => onPageChange(item.id)}
               >
                 <Icon className="mr-3 h-4 w-4" />
