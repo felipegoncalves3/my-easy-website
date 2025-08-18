@@ -119,14 +119,13 @@ export const OperationalPanel = () => {
 
         if (sheetError) {
           console.error('Erro ao atualizar planilha:', sheetError);
-          toast.warning('Candidato validado no sistema, mas erro ao atualizar planilha');
-        } else {
-          toast.success('Candidato validado com sucesso no sistema e planilha!');
         }
       } catch (sheetError) {
         console.error('Erro ao chamar função de atualização da planilha:', sheetError);
-        toast.warning('Candidato validado no sistema, mas erro ao atualizar planilha');
       }
+
+      // Sempre mostrar sucesso após validação
+      toast.success('Candidato validado com sucesso!');
 
       await loadCandidates();
       
