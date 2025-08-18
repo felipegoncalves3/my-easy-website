@@ -16,73 +16,73 @@ export type Database = {
     Tables: {
       candidates: {
         Row: {
+          bpo_que_validou: string | null
+          bpo_responsavel: string | null
           bpo_validou: boolean | null
-          cep: string | null
-          cidade: string | null
           cpf: string | null
           created_at: string | null
-          data_nascimento: string | null
-          disponibilidade: string | null
-          email: string | null
-          endereco: string | null
-          escolaridade: string | null
-          estado: string | null
-          experiencia_anterior: string | null
+          criado_em: string | null
+          data_admissao: string | null
+          data_expiracao: string | null
+          em_progresso_ge_60: string | null
+          evolucao: string | null
           id: string
+          id_contratacao: number | null
+          motivo: string | null
           nome: string
-          observacoes: string | null
-          salario_pretendido: number | null
-          sheet_row_id: number | null
+          priorizar_data_admissao: string | null
+          priorizar_status: string | null
+          progresso_documentos: number | null
           status: string | null
-          telefone: string | null
+          status_contratacao: string | null
           updated_at: string | null
           validado_em: string | null
           validado_por: string | null
         }
         Insert: {
+          bpo_que_validou?: string | null
+          bpo_responsavel?: string | null
           bpo_validou?: boolean | null
-          cep?: string | null
-          cidade?: string | null
           cpf?: string | null
           created_at?: string | null
-          data_nascimento?: string | null
-          disponibilidade?: string | null
-          email?: string | null
-          endereco?: string | null
-          escolaridade?: string | null
-          estado?: string | null
-          experiencia_anterior?: string | null
+          criado_em?: string | null
+          data_admissao?: string | null
+          data_expiracao?: string | null
+          em_progresso_ge_60?: string | null
+          evolucao?: string | null
           id?: string
+          id_contratacao?: number | null
+          motivo?: string | null
           nome: string
-          observacoes?: string | null
-          salario_pretendido?: number | null
-          sheet_row_id?: number | null
+          priorizar_data_admissao?: string | null
+          priorizar_status?: string | null
+          progresso_documentos?: number | null
           status?: string | null
-          telefone?: string | null
+          status_contratacao?: string | null
           updated_at?: string | null
           validado_em?: string | null
           validado_por?: string | null
         }
         Update: {
+          bpo_que_validou?: string | null
+          bpo_responsavel?: string | null
           bpo_validou?: boolean | null
-          cep?: string | null
-          cidade?: string | null
           cpf?: string | null
           created_at?: string | null
-          data_nascimento?: string | null
-          disponibilidade?: string | null
-          email?: string | null
-          endereco?: string | null
-          escolaridade?: string | null
-          estado?: string | null
-          experiencia_anterior?: string | null
+          criado_em?: string | null
+          data_admissao?: string | null
+          data_expiracao?: string | null
+          em_progresso_ge_60?: string | null
+          evolucao?: string | null
           id?: string
+          id_contratacao?: number | null
+          motivo?: string | null
           nome?: string
-          observacoes?: string | null
-          salario_pretendido?: number | null
-          sheet_row_id?: number | null
+          priorizar_data_admissao?: string | null
+          priorizar_status?: string | null
+          progresso_documentos?: number | null
           status?: string | null
-          telefone?: string | null
+          status_contratacao?: string | null
           updated_at?: string | null
           validado_em?: string | null
           validado_por?: string | null
