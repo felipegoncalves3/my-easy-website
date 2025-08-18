@@ -20,7 +20,10 @@ import {
 } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight, X, RotateCcw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Candidate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -35,9 +38,23 @@ export const OperationalPanel = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('pendentes');
   const [priorityFilter, setPriorityFilter] = useState('');
+  const [selectedBPOs, setSelectedBPOs] = useState<string[]>([]);
+  const [availableBPOs, setAvailableBPOs] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const { user } = useAuth();
+
+  // Load saved filters from localStorage
+  useEffect(() => {
+    const savedBPOs = localStorage.getItem('operationalPanel_selectedBPOs');
+    if (savedBPOs) {
+      try {
+        setSelectedBPOs(JSON.parse(savedBPOs));
+      } catch (error) {
+        console.error('Error parsing saved BPO filters:', error);
+      }
+    }
+  }, []);
 
   const loadCandidates = async () => {
     try {
@@ -50,6 +67,14 @@ export const OperationalPanel = () => {
 
       setCandidates(data || []);
       setFilteredCandidates(data || []);
+      
+      // Update available BPOs
+      const bpos = [...new Set(
+        (data || [])
+          .map(candidate => candidate.bpo_responsavel)
+          .filter(bpo => bpo && bpo.trim() !== '')
+      )].sort();
+      setAvailableBPOs(bpos);
     } catch (error) {
       console.error('Erro ao carregar candidatos:', error);
       toast.error('Erro ao carregar candidatos');
@@ -137,15 +162,29 @@ export const OperationalPanel = () => {
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
-    applyFilters(value, priorityFilter, activeTab);
+    applyFilters(value, priorityFilter, activeTab, selectedBPOs);
   };
 
   const handlePriorityFilter = (filter: string) => {
     setPriorityFilter(filter);
-    applyFilters(searchTerm, filter, activeTab);
+    applyFilters(searchTerm, filter, activeTab, selectedBPOs);
   };
 
-  const applyFilters = (search: string, priority: string, tab: string) => {
+  const handleBPOFilter = (bpos: string[]) => {
+    setSelectedBPOs(bpos);
+    localStorage.setItem('operationalPanel_selectedBPOs', JSON.stringify(bpos));
+    applyFilters(searchTerm, priorityFilter, activeTab, bpos);
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm('');
+    setPriorityFilter('');
+    setSelectedBPOs([]);
+    localStorage.removeItem('operationalPanel_selectedBPOs');
+    applyFilters('', '', activeTab, []);
+  };
+
+  const applyFilters = (search: string, priority: string, tab: string, bpos: string[] = selectedBPOs) => {
     let filtered = candidates;
 
     // Filter by tab
@@ -179,6 +218,13 @@ export const OperationalPanel = () => {
       }
     }
 
+    // Apply BPO filter
+    if (bpos.length > 0) {
+      filtered = filtered.filter(candidate => 
+        candidate.bpo_responsavel && bpos.includes(candidate.bpo_responsavel)
+      );
+    }
+
     setFilteredCandidates(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   };
@@ -197,7 +243,7 @@ export const OperationalPanel = () => {
 
   const handleTabChange = (tab: string) => {
     setActiveTab(tab);
-    applyFilters(searchTerm, priorityFilter, tab);
+    applyFilters(searchTerm, priorityFilter, tab, selectedBPOs);
   };
 
   useEffect(() => {
@@ -225,8 +271,8 @@ export const OperationalPanel = () => {
   }, []);
 
   useEffect(() => {
-    applyFilters(searchTerm, priorityFilter, activeTab);
-  }, [candidates, activeTab]);
+    applyFilters(searchTerm, priorityFilter, activeTab, selectedBPOs);
+  }, [candidates, activeTab, selectedBPOs]);
 
   useEffect(() => {
     paginateResults();
@@ -484,7 +530,7 @@ export const OperationalPanel = () => {
       <Card>
         <CardHeader>
           <CardTitle>Candidatos para Validação</CardTitle>
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center space-x-2">
               <Search className="h-4 w-4 text-muted-foreground" />
               <Input
@@ -494,6 +540,70 @@ export const OperationalPanel = () => {
                 className="max-w-sm"
               />
             </div>
+            
+            {/* BPO Filter */}
+            {availableBPOs.length > 0 && (
+              <div className="flex items-center space-x-2">
+                <Filter className="h-4 w-4 text-muted-foreground" />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-[250px] justify-start text-left font-normal"
+                    >
+                      <Filter className="mr-2 h-4 w-4" />
+                      {selectedBPOs.length === 0
+                        ? "Todos os BPOs"
+                        : selectedBPOs.length === 1
+                        ? selectedBPOs[0]
+                        : `${selectedBPOs.length} BPOs selecionados`}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[250px] p-0" align="start">
+                    <Command>
+                      <CommandInput placeholder="Buscar BPO..." />
+                      <CommandList>
+                        <CommandEmpty>Nenhum BPO encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          <CommandItem
+                            onSelect={() => handleBPOFilter([])}
+                            className="cursor-pointer"
+                          >
+                            <Checkbox
+                              checked={selectedBPOs.length === 0}
+                              className="mr-2"
+                            />
+                            Todos os BPOs
+                          </CommandItem>
+                          {availableBPOs.map((bpo) => (
+                            <CommandItem
+                              key={bpo}
+                              onSelect={() => {
+                                const isSelected = selectedBPOs.includes(bpo);
+                                if (isSelected) {
+                                  handleBPOFilter(selectedBPOs.filter((b) => b !== bpo));
+                                } else {
+                                  handleBPOFilter([...selectedBPOs, bpo]);
+                                }
+                              }}
+                              className="cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={selectedBPOs.includes(bpo)}
+                                className="mr-2"
+                              />
+                              {bpo}
+                            </CommandItem>
+                          ))}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
+            )}
+
             {activeTab === 'pendentes' && (
               <div className="flex items-center space-x-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
@@ -510,7 +620,38 @@ export const OperationalPanel = () => {
                 </Select>
               </div>
             )}
+
+            {/* Clear filters button */}
+            {(searchTerm || priorityFilter || selectedBPOs.length > 0) && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={clearAllFilters}
+                className="flex items-center space-x-1"
+              >
+                <RotateCcw className="h-3 w-3" />
+                <span>Limpar filtros</span>
+              </Button>
+            )}
           </div>
+
+          {/* Selected BPO chips */}
+          {selectedBPOs.length > 0 && (
+            <div className="flex flex-wrap gap-2 mt-3">
+              <span className="text-sm text-muted-foreground">BPOs selecionados:</span>
+              {selectedBPOs.map((bpo) => (
+                <Badge
+                  key={bpo}
+                  variant="secondary"
+                  className="flex items-center gap-1 cursor-pointer hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => handleBPOFilter(selectedBPOs.filter((b) => b !== bpo))}
+                >
+                  {bpo}
+                  <X className="h-3 w-3" />
+                </Badge>
+              ))}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange}>
