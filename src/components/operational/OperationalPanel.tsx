@@ -60,6 +60,19 @@ export const OperationalPanel = () => {
 
   const handleValidateCandidate = async (candidateId: string) => {
     try {
+      // Buscar dados completos do candidato antes da validação
+      const { data: candidateData, error: fetchError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('id', candidateId)
+        .single();
+
+      if (fetchError) {
+        console.error('Erro ao buscar candidato:', fetchError);
+        toast.error('Erro ao buscar dados do candidato');
+        return;
+      }
+
       // Atualizar no banco de dados
       const { error } = await supabase
         .from('candidates')
@@ -73,6 +86,30 @@ export const OperationalPanel = () => {
         .eq('id', candidateId);
 
       if (error) throw error;
+
+      // Buscar dados atualizados do candidato
+      const { data: updatedCandidate, error: updatedError } = await supabase
+        .from('candidates')
+        .select('*')
+        .eq('id', candidateId)
+        .single();
+
+      if (updatedError) {
+        console.error('Erro ao buscar candidato atualizado:', updatedError);
+      }
+
+      // Chamar webhook se configurado
+      try {
+        const { error: webhookError } = await supabase.functions.invoke('webhook-validar', {
+          body: { candidateData: updatedCandidate || candidateData }
+        });
+
+        if (webhookError) {
+          console.error('Erro ao chamar webhook:', webhookError);
+        }
+      } catch (webhookError) {
+        console.error('Erro ao processar webhook:', webhookError);
+      }
 
       // Atualizar na planilha do Google Sheets
       try {

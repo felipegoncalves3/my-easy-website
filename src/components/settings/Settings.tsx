@@ -113,10 +113,43 @@ export const Settings = () => {
         </Button>
       </div>
 
-      <Tabs defaultValue="users" className="space-y-4">
+      <Tabs defaultValue="webhook" className="space-y-4">
         <TabsList>
+          <TabsTrigger value="webhook">Webhook</TabsTrigger>
           <TabsTrigger value="users">Usuários</TabsTrigger>
         </TabsList>
+
+        <TabsContent value="webhook">
+          <Card>
+            <CardHeader>
+              <CardTitle>Configurações de Webhook</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <Label htmlFor="webhook-url">Webhook para Validar</Label>
+                <Input
+                  id="webhook-url"
+                  value={configs.webhook_validar_url || ''}
+                  onChange={(e) => handleConfigChange('webhook_validar_url', e.target.value)}
+                  placeholder="https://seu-webhook.com/endpoint"
+                />
+                <p className="text-sm text-muted-foreground mt-1">
+                  URL do webhook que será chamado quando um candidato for validado
+                </p>
+              </div>
+
+              <div className="pt-4 border-t">
+                <h3 className="font-medium mb-2">Como funciona o webhook:</h3>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  <li>• Quando um candidato é validado, o sistema enviará uma requisição POST para a URL configurada</li>
+                  <li>• O payload conterá todos os dados do candidato validado</li>
+                  <li>• O webhook será chamado automaticamente após a validação no sistema</li>
+                  <li>• Certifique-se de que a URL está acessível e aceita requisições POST</li>
+                </ul>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         <TabsContent value="users">
           <UserManagement />
