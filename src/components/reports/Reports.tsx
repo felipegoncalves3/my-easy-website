@@ -52,13 +52,12 @@ export const Reports = () => {
   const exportToCsv = () => {
     try {
       const headers = [
+        'ID Contratação',
         'Nome',
         'CPF',
-        'Email',
-        'Telefone',
-        'Data Nascimento',
-        'Cidade',
-        'Estado',
+        'Status Contratação',
+        'Progresso Documentos',
+        'BPO Responsável',
         'Status',
         'BPO Validou',
         'Data Criação'
@@ -67,13 +66,12 @@ export const Reports = () => {
       const csvContent = [
         headers.join(','),
         ...candidates.map(candidate => [
+          candidate.id_contratacao || '',
           candidate.nome,
           candidate.cpf || '',
-          candidate.email || '',
-          candidate.telefone || '',
-          candidate.data_nascimento || '',
-          candidate.cidade || '',
-          candidate.estado || '',
+          candidate.status_contratacao || '',
+          candidate.progresso_documentos || '',
+          candidate.bpo_responsavel || '',
           candidate.status,
           candidate.bpo_validou ? 'SIM' : 'NÃO',
           new Date(candidate.created_at).toLocaleDateString('pt-BR')

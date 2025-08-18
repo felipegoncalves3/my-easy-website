@@ -173,7 +173,7 @@ serve(async (req) => {
         const { data: existingCandidate } = await supabaseClient
           .from('candidates')
           .select('*')
-          .eq('sheet_row_id', parseInt(row.codigo || '0'))
+          .eq('id_contratacao', parseInt(row.codigo || '0'))
           .maybeSingle();
 
         const isValidated = row.bpo_validou === 'SIM';
@@ -186,18 +186,18 @@ serve(async (req) => {
             cpf: row.cpf || '',
             status: candidateStatus,
             bpo_validou: isValidated,
-            observacoes: `BPO Responsável: ${row.bpo_responsavel} | Motivo: ${row.motivo} | Status Contratação: ${row.status_contratacao} | Progressão: ${row.progressao_documentos}`,
-            sheet_row_id: parseInt(row.codigo),
-            data_nascimento: null,
-            email: '',
-            telefone: '',
-            endereco: '',
-            cidade: '',
-            estado: '',
-            cep: '',
-            disponibilidade: row.status_contratacao || '',
-            experiencia_anterior: row.evolucao || '',
-            escolaridade: ''
+            id_contratacao: parseInt(row.codigo),
+            status_contratacao: row.status_contratacao || '',
+            progresso_documentos: row.progressao_documentos ? parseFloat(row.progressao_documentos) : null,
+            criado_em: row.data_criacao || null,
+            data_admissao: row.data_admissao || null,
+            data_expiracao: row.data_expiracao || null,
+            evolucao: row.evolucao || '',
+            motivo: row.motivo || 'Novo Candidato',
+            bpo_responsavel: row.bpo_responsavel || '',
+            priorizar_status: row.priorizar_status || null,
+            priorizar_data_admissao: row.priorizar_data_admissao || null,
+            em_progresso_ge_60: row.em_progresso || null
           };
 
           console.log(`Inserindo novo candidato: ${candidateData.nome} - Código: ${row.codigo} - Status: ${candidateStatus}`);
@@ -218,16 +218,24 @@ serve(async (req) => {
             cpf: row.cpf || existingCandidate.cpf,
             status: candidateStatus,
             bpo_validou: isValidated,
-            observacoes: `BPO Responsável: ${row.bpo_responsavel} | Motivo: ${row.motivo} | Status Contratação: ${row.status_contratacao} | Progressão: ${row.progressao_documentos}`,
-            disponibilidade: row.status_contratacao || existingCandidate.disponibilidade,
-            experiencia_anterior: row.evolucao || existingCandidate.experiencia_anterior,
+            status_contratacao: row.status_contratacao || existingCandidate.status_contratacao,
+            progresso_documentos: row.progressao_documentos ? parseFloat(row.progressao_documentos) : existingCandidate.progresso_documentos,
+            criado_em: row.data_criacao || existingCandidate.criado_em,
+            data_admissao: row.data_admissao || existingCandidate.data_admissao,
+            data_expiracao: row.data_expiracao || existingCandidate.data_expiracao,
+            evolucao: row.evolucao || existingCandidate.evolucao,
+            motivo: row.motivo || existingCandidate.motivo,
+            bpo_responsavel: row.bpo_responsavel || existingCandidate.bpo_responsavel,
+            priorizar_status: row.priorizar_status || existingCandidate.priorizar_status,
+            priorizar_data_admissao: row.priorizar_data_admissao || existingCandidate.priorizar_data_admissao,
+            em_progresso_ge_60: row.em_progresso || existingCandidate.em_progresso_ge_60,
             updated_at: new Date().toISOString()
           };
 
           await supabaseClient
             .from('candidates')
             .update(updateData)
-            .eq('sheet_row_id', parseInt(row.codigo));
+            .eq('id_contratacao', parseInt(row.codigo));
           
           processedRecords++;
         }

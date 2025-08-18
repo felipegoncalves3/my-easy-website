@@ -59,7 +59,9 @@ export const OperationalPanel = () => {
         .update({
           bpo_validou: true,
           validado_por: user?.id,
-          validado_em: new Date().toISOString()
+          validado_em: new Date().toISOString(),
+          bpo_que_validou: user?.full_name || user?.username,
+          status: 'validado'
         })
         .eq('id', candidateId);
 
@@ -94,8 +96,8 @@ export const OperationalPanel = () => {
     setSearchTerm(value);
     const filtered = candidates.filter(candidate =>
       candidate.nome.toLowerCase().includes(value.toLowerCase()) ||
-      candidate.email?.toLowerCase().includes(value.toLowerCase()) ||
-      candidate.cpf?.includes(value)
+      candidate.cpf?.includes(value) ||
+      candidate.id_contratacao?.toString().includes(value)
     );
     setFilteredCandidates(filtered);
   };
@@ -144,7 +146,7 @@ export const OperationalPanel = () => {
           <div className="flex items-center space-x-2">
             <Search className="h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar por nome, email ou CPF..."
+              placeholder="Buscar por nome, CPF ou ID contratação..."
               value={searchTerm}
               onChange={(e) => handleSearch(e.target.value)}
               className="max-w-sm"
@@ -156,19 +158,25 @@ export const OperationalPanel = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Telefone</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Ações</TableHead>
+                <TableHead>ID Contratação</TableHead>
+                <TableHead>Nome</TableHead>
+                <TableHead>CPF</TableHead>
+                <TableHead>Status Contratação</TableHead>
+                <TableHead>Progresso Docs</TableHead>
+                <TableHead>BPO Responsável</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredCandidates.map((candidate) => (
                   <TableRow key={candidate.id}>
+                    <TableCell className="font-medium">{candidate.id_contratacao || 'N/A'}</TableCell>
                     <TableCell className="font-medium">{candidate.nome}</TableCell>
-                    <TableCell>{candidate.email || '-'}</TableCell>
-                    <TableCell>{candidate.telefone || '-'}</TableCell>
+                    <TableCell>{candidate.cpf || 'N/A'}</TableCell>
+                    <TableCell>{candidate.status_contratacao || 'N/A'}</TableCell>
+                    <TableCell>{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</TableCell>
+                    <TableCell>{candidate.bpo_responsavel || 'N/A'}</TableCell>
                     <TableCell>
                       <Badge variant={candidate.bpo_validou ? "default" : "secondary"}>
                         {candidate.bpo_validou ? "Validado" : "Pendente"}
@@ -186,55 +194,81 @@ export const OperationalPanel = () => {
                               <Eye className="h-4 w-4" />
                             </Button>
                           </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
+                          <DialogContent className="max-w-4xl">
                             <DialogHeader>
                               <DialogTitle>Detalhes do Candidato</DialogTitle>
                             </DialogHeader>
                             {selectedCandidate && (
                               <div className="grid grid-cols-2 gap-4">
                                 <div>
+                                  <label className="font-semibold">ID Contratação:</label>
+                                  <p>{selectedCandidate.id_contratacao || 'N/A'}</p>
+                                </div>
+                                <div>
                                   <label className="font-semibold">Nome:</label>
                                   <p>{selectedCandidate.nome}</p>
                                 </div>
                                 <div>
                                   <label className="font-semibold">CPF:</label>
-                                  <p>{selectedCandidate.cpf || '-'}</p>
+                                  <p>{selectedCandidate.cpf || 'N/A'}</p>
                                 </div>
                                 <div>
-                                  <label className="font-semibold">Email:</label>
-                                  <p>{selectedCandidate.email || '-'}</p>
+                                  <label className="font-semibold">Status Contratação:</label>
+                                  <p>{selectedCandidate.status_contratacao || 'N/A'}</p>
                                 </div>
                                 <div>
-                                  <label className="font-semibold">Telefone:</label>
-                                  <p>{selectedCandidate.telefone || '-'}</p>
+                                  <label className="font-semibold">Progresso Documentos:</label>
+                                  <p>{selectedCandidate.progresso_documentos ? `${selectedCandidate.progresso_documentos}%` : 'N/A'}</p>
                                 </div>
                                 <div>
-                                  <label className="font-semibold">Data de Nascimento:</label>
-                                  <p>{selectedCandidate.data_nascimento || '-'}</p>
+                                  <label className="font-semibold">Criado em:</label>
+                                  <p>{selectedCandidate.criado_em || 'N/A'}</p>
                                 </div>
                                 <div>
-                                  <label className="font-semibold">Cidade:</label>
-                                  <p>{selectedCandidate.cidade || '-'}</p>
-                                </div>
-                                <div className="col-span-2">
-                                  <label className="font-semibold">Endereço:</label>
-                                  <p>{selectedCandidate.endereco || '-'}</p>
+                                  <label className="font-semibold">Data Admissão:</label>
+                                  <p>{selectedCandidate.data_admissao || 'N/A'}</p>
                                 </div>
                                 <div>
-                                  <label className="font-semibold">Escolaridade:</label>
-                                  <p>{selectedCandidate.escolaridade || '-'}</p>
+                                  <label className="font-semibold">Data Expiração:</label>
+                                  <p>{selectedCandidate.data_expiracao || 'N/A'}</p>
                                 </div>
                                 <div>
-                                  <label className="font-semibold">Disponibilidade:</label>
-                                  <p>{selectedCandidate.disponibilidade || '-'}</p>
+                                  <label className="font-semibold">Evolução:</label>
+                                  <p>{selectedCandidate.evolucao || 'N/A'}</p>
                                 </div>
-                                <div className="col-span-2">
-                                  <label className="font-semibold">Experiência Anterior:</label>
-                                  <p>{selectedCandidate.experiencia_anterior || '-'}</p>
+                                <div>
+                                  <label className="font-semibold">Motivo:</label>
+                                  <p>{selectedCandidate.motivo || 'N/A'}</p>
                                 </div>
-                                <div className="col-span-2">
-                                  <label className="font-semibold">Observações:</label>
-                                  <p>{selectedCandidate.observacoes || '-'}</p>
+                                <div>
+                                  <label className="font-semibold">BPO Responsável:</label>
+                                  <p>{selectedCandidate.bpo_responsavel || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="font-semibold">Priorizar Status:</label>
+                                  <p>{selectedCandidate.priorizar_status || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="font-semibold">Priorizar Data Admissão:</label>
+                                  <p>{selectedCandidate.priorizar_data_admissao || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="font-semibold">Em Progresso ≥60:</label>
+                                  <p>{selectedCandidate.em_progresso_ge_60 || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="font-semibold">BPO que Validou:</label>
+                                  <p>{selectedCandidate.bpo_que_validou || 'N/A'}</p>
+                                </div>
+                                <div>
+                                  <label className="font-semibold">Status:</label>
+                                  <Badge variant={selectedCandidate.bpo_validou ? "default" : "secondary"} className="ml-2">
+                                    {selectedCandidate.bpo_validou ? 'Validado' : 'Pendente'}
+                                  </Badge>
+                                </div>
+                                <div>
+                                  <label className="font-semibold">Criado em:</label>
+                                  <p>{new Date(selectedCandidate.created_at).toLocaleDateString('pt-BR')}</p>
                                 </div>
                               </div>
                             )}

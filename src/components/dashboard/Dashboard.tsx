@@ -159,7 +159,7 @@ export const Dashboard = () => {
                 <div key={candidate.id} className="flex items-center justify-between">
                   <div>
                     <p className="font-medium">{candidate.nome}</p>
-                    <p className="text-sm text-muted-foreground">{candidate.email}</p>
+                    <p className="text-sm text-muted-foreground">ID: {candidate.id_contratacao || 'N/A'}</p>
                   </div>
                   <Badge variant={candidate.bpo_validou ? "default" : "secondary"}>
                     {candidate.bpo_validou ? "Validado" : "Pendente"}
