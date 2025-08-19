@@ -80,7 +80,10 @@ export const OperationalPanel = () => {
   const formatCPF = (cpf: string) => {
     if (!cpf || cpf === 'N/A') return 'N/A';
     const numbers = cpf.replace(/\D/g, '');
-    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '***.***.***-**');
+    if (numbers.length === 11) {
+      return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+    }
+    return cpf;
   };
 
   // Get priority level
