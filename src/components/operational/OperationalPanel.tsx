@@ -655,9 +655,9 @@ export const OperationalPanel = () => {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="pendentes">PENDENTES</TabsTrigger>
-              <TabsTrigger value="todos">TODOS</TabsTrigger>
+            <TabsList className="inline-flex h-8 items-center justify-center rounded-md bg-muted p-1 text-muted-foreground">
+              <TabsTrigger value="pendentes" className="text-xs px-3 py-1">Pendentes</TabsTrigger>
+              <TabsTrigger value="todos" className="text-xs px-3 py-1">Todos</TabsTrigger>
             </TabsList>
             
             <TabsContent value="pendentes" className="mt-6">
