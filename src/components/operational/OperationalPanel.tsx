@@ -100,7 +100,7 @@ export const OperationalPanel = () => {
       : candidates.filter(c => c.bpo_validou);
     
     return {
-      recusados: base.filter(c => c.status === 'recusado').length,
+      prioridadeData: base.filter(c => c.priorizar_data_admissao && c.priorizar_data_admissao !== 'N/A').length,
       progress60: base.filter(c => (c.progresso_documentos || 0) >= 60).length,
       progress100: base.filter(c => c.progresso_documentos === 100).length,
       total: base.length
@@ -288,8 +288,8 @@ export const OperationalPanel = () => {
     // Apply quick filters
     quickFilters.forEach(filter => {
       switch (filter) {
-        case 'recusados':
-          filtered = filtered.filter(c => c.status === 'recusado');
+        case 'prioridadeData':
+          filtered = filtered.filter(c => c.priorizar_data_admissao && c.priorizar_data_admissao !== 'N/A');
           break;
         case 'progress60':
           filtered = filtered.filter(c => (c.progresso_documentos || 0) >= 60);
@@ -659,13 +659,13 @@ export const OperationalPanel = () => {
               return (
                 <>
                   <Button
-                    variant={quickFilters.includes('recusados') ? 'default' : 'outline'}
+                    variant={quickFilters.includes('prioridadeData') ? 'default' : 'outline'}
                     size="sm"
-                    onClick={() => handleQuickFilter('recusados')}
+                    onClick={() => handleQuickFilter('prioridadeData')}
                     className="h-7 text-xs"
                   >
                     <AlertTriangle className="h-3 w-3 mr-1" />
-                    Recusados ({counts.recusados})
+                    Priorizar Data ({counts.prioridadeData})
                   </Button>
                   <Button
                     variant={quickFilters.includes('progress60') ? 'default' : 'outline'}
