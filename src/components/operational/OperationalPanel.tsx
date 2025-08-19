@@ -76,6 +76,14 @@ export const OperationalPanel = () => {
     }
   };
 
+  // Copy Name function
+  const copyName = (name: string) => {
+    if (name && name !== 'N/A') {
+      navigator.clipboard.writeText(name);
+      toast.success('Nome copiado!');
+    }
+  };
+
   // Format CPF with mask
   const formatCPF = (cpf: string) => {
     if (!cpf || cpf === 'N/A') return 'N/A';
@@ -101,8 +109,8 @@ export const OperationalPanel = () => {
     
     return {
       prioridadeData: base.filter(c => c.priorizar_data_admissao && c.priorizar_data_admissao !== 'N/A').length,
+      prioridadeStatus: base.filter(c => c.priorizar_status && c.priorizar_status !== 'N/A').length,
       progress60: base.filter(c => (c.progresso_documentos || 0) >= 60).length,
-      progress100: base.filter(c => c.progresso_documentos === 100).length,
       total: base.length
     };
   };
@@ -291,11 +299,11 @@ export const OperationalPanel = () => {
         case 'prioridadeData':
           filtered = filtered.filter(c => c.priorizar_data_admissao && c.priorizar_data_admissao !== 'N/A');
           break;
+        case 'prioridadeStatus':
+          filtered = filtered.filter(c => c.priorizar_status && c.priorizar_status !== 'N/A');
+          break;
         case 'progress60':
           filtered = filtered.filter(c => (c.progresso_documentos || 0) >= 60);
-          break;
-        case 'progress100':
-          filtered = filtered.filter(c => c.progresso_documentos === 100);
           break;
       }
     });
@@ -382,7 +390,24 @@ export const OperationalPanel = () => {
           {paginatedCandidates.map((candidate) => (
             <TableRow key={candidate.id} className={`table-row-modern ${isCompactMode ? 'h-8' : 'h-12'}`}>
               <TableCell className="font-medium text-xs whitespace-nowrap sticky left-0 bg-background">{candidate.id_contratacao || 'N/A'}</TableCell>
-              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-[120px] bg-background max-w-[200px] truncate">{candidate.nome}</TableCell>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TableCell 
+                      className="font-medium text-xs whitespace-nowrap sticky left-[120px] bg-background max-w-[200px] truncate cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => copyName(candidate.nome)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {candidate.nome}
+                        <Copy className="h-3 w-3 opacity-50" />
+                      </div>
+                    </TableCell>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clique para copiar nome</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -668,6 +693,15 @@ export const OperationalPanel = () => {
                     Priorizar Data ({counts.prioridadeData})
                   </Button>
                   <Button
+                    variant={quickFilters.includes('prioridadeStatus') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickFilter('prioridadeStatus')}
+                    className="h-7 text-xs"
+                  >
+                    <Zap className="h-3 w-3 mr-1" />
+                    Priorizar Status ({counts.prioridadeStatus})
+                  </Button>
+                  <Button
                     variant={quickFilters.includes('progress60') ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => handleQuickFilter('progress60')}
@@ -675,15 +709,6 @@ export const OperationalPanel = () => {
                   >
                     <ScanLine className="h-3 w-3 mr-1" />
                     ≥60% ({counts.progress60})
-                  </Button>
-                  <Button
-                    variant={quickFilters.includes('progress100') ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => handleQuickFilter('progress100')}
-                    className="h-7 text-xs"
-                  >
-                    <CheckCircle className="h-3 w-3 mr-1" />
-                    100% ({counts.progress100})
                   </Button>
                   <Badge variant="outline" className="text-xs">
                     Total: {counts.total}
