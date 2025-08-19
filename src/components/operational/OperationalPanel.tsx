@@ -364,10 +364,10 @@ export const OperationalPanel = () => {
   const renderCandidateTable = (showPriorityColumns = false) => (
     <div className="overflow-x-auto">
       <Table className="w-auto text-sm table-modern">
-        <TableHeader className="sticky top-[140px] bg-background z-10 border-b">
+        <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow className="hover:bg-transparent border-b border-border/30">
-            <TableHead className="text-xs w-[120px] whitespace-nowrap font-semibold text-muted-foreground sticky left-0 bg-background z-20 border-r">ID Contratação</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Nome</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-0 bg-background z-20">ID Contratação</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-[120px] bg-background z-20">Nome</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">CPF</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status Contratação</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Motivo</TableHead>
@@ -375,14 +375,14 @@ export const OperationalPanel = () => {
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">BPO Responsável</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Prioridade</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center sticky right-0 bg-background z-20 border-l">Ações</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center sticky right-0 bg-background z-20">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {paginatedCandidates.map((candidate) => (
             <TableRow key={candidate.id} className={`table-row-modern ${isCompactMode ? 'h-8' : 'h-12'}`}>
-              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-0 bg-background z-10 border-r w-[120px]">{candidate.id_contratacao || 'N/A'}</TableCell>
-              <TableCell className="font-medium text-xs whitespace-nowrap max-w-[200px] truncate">{candidate.nome}</TableCell>
+              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-0 bg-background">{candidate.id_contratacao || 'N/A'}</TableCell>
+              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-[120px] bg-background max-w-[200px] truncate">{candidate.nome}</TableCell>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -451,7 +451,7 @@ export const OperationalPanel = () => {
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
               </TableCell>
-              <TableCell className="whitespace-nowrap sticky right-0 bg-background z-10 border-l">
+              <TableCell className="whitespace-nowrap sticky right-0 bg-background">
                 <div className="flex space-x-1">
                   <Dialog>
                     <DialogTrigger asChild>
@@ -634,7 +634,7 @@ export const OperationalPanel = () => {
       </div>
 
       <Card>
-        <CardHeader className="sticky top-0 bg-background z-30 border-b shadow-sm">
+        <CardHeader className="sticky top-0 bg-background z-30 border-b">
           <div className="flex justify-between items-center">
             <CardTitle>Candidatos para Validação</CardTitle>
             <div className="flex items-center gap-4">
