@@ -375,7 +375,7 @@ export const OperationalPanel = () => {
         <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow className="hover:bg-transparent border-b border-border/30">
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-0 bg-background z-20">ID Contratação</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-[120px] bg-background z-20">Nome</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-[120px] bg-background z-20 min-w-[250px]">Nome</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">CPF</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status Contratação</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Motivo</TableHead>
@@ -394,12 +394,12 @@ export const OperationalPanel = () => {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <TableCell 
-                      className="font-medium text-xs whitespace-nowrap sticky left-[120px] bg-background max-w-[200px] truncate cursor-pointer hover:bg-muted/50 transition-colors"
+                      className="font-medium text-xs sticky left-[120px] bg-background min-w-[250px] max-w-[280px] cursor-pointer hover:bg-muted/50 transition-colors"
                       onClick={() => copyName(candidate.nome)}
                     >
-                      <div className="flex items-center gap-1">
-                        {candidate.nome}
-                        <Copy className="h-3 w-3 opacity-50" />
+                      <div className="flex items-center gap-1 w-full">
+                        <span className="truncate flex-1">{candidate.nome}</span>
+                        <Copy className="h-3 w-3 opacity-50 flex-shrink-0" />
                       </div>
                     </TableCell>
                   </TooltipTrigger>
