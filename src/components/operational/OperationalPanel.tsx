@@ -23,7 +23,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight, X, RotateCcw } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight, X, RotateCcw, Copy, Zap, ScanLine, AlertTriangle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Candidate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -42,6 +44,11 @@ export const OperationalPanel = () => {
   const [availableBPOs, setAvailableBPOs] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  const [isCompactMode, setIsCompactMode] = useState(() => {
+    const saved = localStorage.getItem('operationalPanel_compactMode');
+    return saved !== null ? JSON.parse(saved) : false;
+  });
+  const [quickFilters, setQuickFilters] = useState<string[]>([]);
   const { user } = useAuth();
 
   // Load saved filters from localStorage
@@ -55,6 +62,56 @@ export const OperationalPanel = () => {
       }
     }
   }, []);
+
+  // Save compact mode preference
+  useEffect(() => {
+    localStorage.setItem('operationalPanel_compactMode', JSON.stringify(isCompactMode));
+  }, [isCompactMode]);
+
+  // Copy CPF function
+  const copyCPF = (cpf: string) => {
+    if (cpf && cpf !== 'N/A') {
+      navigator.clipboard.writeText(cpf.replace(/\D/g, ''));
+      toast.success('CPF copiado!');
+    }
+  };
+
+  // Format CPF with mask
+  const formatCPF = (cpf: string) => {
+    if (!cpf || cpf === 'N/A') return 'N/A';
+    const numbers = cpf.replace(/\D/g, '');
+    return numbers.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '***.***.***-**');
+  };
+
+  // Get priority level
+  const getPriorityLevel = (candidate: Candidate) => {
+    if (candidate.priorizar_status && candidate.priorizar_data_admissao) return 'Alta';
+    if (candidate.priorizar_status || candidate.priorizar_data_admissao) return 'Média';
+    return 'Baixa';
+  };
+
+  // Quick filter functions
+  const getQuickFilterCounts = () => {
+    const base = activeTab === 'pendentes' 
+      ? candidates.filter(c => !c.bpo_validou)
+      : candidates.filter(c => c.bpo_validou);
+    
+    return {
+      recusados: base.filter(c => c.status === 'recusado').length,
+      progress60: base.filter(c => (c.progresso_documentos || 0) >= 60).length,
+      progress100: base.filter(c => c.progresso_documentos === 100).length,
+      total: base.length
+    };
+  };
+
+  const handleQuickFilter = (filter: string) => {
+    const isActive = quickFilters.includes(filter);
+    if (isActive) {
+      setQuickFilters(quickFilters.filter(f => f !== filter));
+    } else {
+      setQuickFilters([...quickFilters, filter]);
+    }
+  };
 
   const loadCandidates = async () => {
     try {
@@ -225,6 +282,21 @@ export const OperationalPanel = () => {
       );
     }
 
+    // Apply quick filters
+    quickFilters.forEach(filter => {
+      switch (filter) {
+        case 'recusados':
+          filtered = filtered.filter(c => c.status === 'recusado');
+          break;
+        case 'progress60':
+          filtered = filtered.filter(c => (c.progresso_documentos || 0) >= 60);
+          break;
+        case 'progress100':
+          filtered = filtered.filter(c => c.progresso_documentos === 100);
+          break;
+      }
+    });
+
     setFilteredCandidates(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   };
@@ -272,7 +344,7 @@ export const OperationalPanel = () => {
 
   useEffect(() => {
     applyFilters(searchTerm, priorityFilter, activeTab, selectedBPOs);
-  }, [candidates, activeTab, selectedBPOs]);
+  }, [candidates, activeTab, selectedBPOs, quickFilters]);
 
   useEffect(() => {
     paginateResults();
@@ -288,35 +360,46 @@ export const OperationalPanel = () => {
 
   const renderCandidateTable = (showPriorityColumns = false) => (
     <div className="overflow-x-auto">
-      <Table className="w-auto text-sm table-modern"> {/* Reduce font size by 30% */}
-        <TableHeader>
+      <Table className="w-auto text-sm table-modern">
+        <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow className="hover:bg-transparent border-b border-border/30">
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">ID Contratação</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Nome</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-0 bg-background z-20">ID Contratação</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-[120px] bg-background z-20">Nome</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">CPF</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status Contratação</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Motivo</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Progresso Docs</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">BPO Responsável</TableHead>
-            {showPriorityColumns && (
-              <>
-                <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Progresso ≥60</TableHead>
-                <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Priorizar Data</TableHead>
-                <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Priorizar Status</TableHead>
-              </>
-            )}
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Prioridade</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status</TableHead>
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center">Ações</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center sticky right-0 bg-background z-20">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {paginatedCandidates.map((candidate) => (
-            <TableRow key={candidate.id} className="table-row-modern">
-              <TableCell className="font-medium text-xs whitespace-nowrap">{candidate.id_contratacao || 'N/A'}</TableCell>
-              <TableCell className="font-medium text-xs whitespace-nowrap">{candidate.nome}</TableCell>
-              <TableCell className="text-xs whitespace-nowrap font-mono">{candidate.cpf || 'N/A'}</TableCell>
+            <TableRow key={candidate.id} className={`table-row-modern ${isCompactMode ? 'h-8' : 'h-12'}`}>
+              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-0 bg-background">{candidate.id_contratacao || 'N/A'}</TableCell>
+              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-[120px] bg-background max-w-[200px] truncate">{candidate.nome}</TableCell>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TableCell 
+                      className="text-xs whitespace-nowrap font-mono cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => copyCPF(candidate.cpf || '')}
+                    >
+                      <div className="flex items-center gap-1">
+                        {formatCPF(candidate.cpf || '')}
+                        {candidate.cpf && candidate.cpf !== 'N/A' && <Copy className="h-3 w-3 opacity-50" />}
+                      </div>
+                    </TableCell>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Clique para copiar CPF</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <TableCell className="text-xs whitespace-nowrap">{candidate.status_contratacao || 'N/A'}</TableCell>
-              <TableCell className="text-xs whitespace-nowrap">{candidate.motivo || 'N/A'}</TableCell>
+              <TableCell className="text-xs whitespace-nowrap max-w-[150px] truncate">{candidate.motivo || 'N/A'}</TableCell>
               <TableCell className="text-xs whitespace-nowrap">
                 <div className="flex items-center gap-2">
                   <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
@@ -328,16 +411,36 @@ export const OperationalPanel = () => {
                     />
                   </div>
                   <span className="text-xs">{candidate.progresso_documentos !== null && candidate.progresso_documentos !== undefined ? `${candidate.progresso_documentos}%` : '0%'}</span>
+                  {(candidate.progresso_documentos || 0) >= 60 && (
+                    <CheckCircle className="h-3 w-3 text-green-500" />
+                  )}
                 </div>
               </TableCell>
               <TableCell className="text-xs whitespace-nowrap">{candidate.bpo_responsavel || 'N/A'}</TableCell>
-              {showPriorityColumns && (
-                <>
-                  <TableCell className="text-xs whitespace-nowrap">{candidate.em_progresso_ge_60 || 'N/A'}</TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">{candidate.priorizar_data_admissao || 'N/A'}</TableCell>
-                  <TableCell className="text-xs whitespace-nowrap">{candidate.priorizar_status || 'N/A'}</TableCell>
-                </>
-              )}
+              <TableCell className="text-xs whitespace-nowrap">
+                <div className="flex items-center gap-2">
+                  <Badge 
+                    variant={getPriorityLevel(candidate) === 'Alta' ? 'destructive' : getPriorityLevel(candidate) === 'Média' ? 'default' : 'secondary'}
+                    className="text-xs"
+                  >
+                    {getPriorityLevel(candidate)}
+                  </Badge>
+                  {(candidate.priorizar_status || candidate.priorizar_data_admissao) && (
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button size="sm" variant="ghost" className="h-6 w-6 p-0">
+                            <Zap className="h-3 w-3 text-yellow-500" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Priorizar</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  )}
+                </div>
+              </TableCell>
               <TableCell className="whitespace-nowrap">
                 <Badge 
                   className={candidate.bpo_validou ? "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 text-xs" : "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-secondary-foreground bg-orange-500 hover:bg-orange-600 text-xs"}
@@ -345,8 +448,8 @@ export const OperationalPanel = () => {
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
               </TableCell>
-              <TableCell className="whitespace-nowrap">
-                <div className="flex space-x-2">
+              <TableCell className="whitespace-nowrap sticky right-0 bg-background">
+                <div className="flex space-x-1">
                   <Dialog>
                     <DialogTrigger asChild>
                       <Button
@@ -528,8 +631,65 @@ export const OperationalPanel = () => {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Candidatos para Validação</CardTitle>
+        <CardHeader className="sticky top-0 bg-background z-30 border-b">
+          <div className="flex justify-between items-center">
+            <CardTitle>Candidatos para Validação</CardTitle>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Densidade:</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs">Compacto</span>
+                  <Switch
+                    checked={!isCompactMode}
+                    onCheckedChange={(checked) => setIsCompactMode(!checked)}
+                  />
+                  <span className="text-xs">Conforto</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          {/* Quick Filter Chips */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(() => {
+              const counts = getQuickFilterCounts();
+              return (
+                <>
+                  <Button
+                    variant={quickFilters.includes('recusados') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickFilter('recusados')}
+                    className="h-7 text-xs"
+                  >
+                    <AlertTriangle className="h-3 w-3 mr-1" />
+                    Recusados ({counts.recusados})
+                  </Button>
+                  <Button
+                    variant={quickFilters.includes('progress60') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickFilter('progress60')}
+                    className="h-7 text-xs"
+                  >
+                    <ScanLine className="h-3 w-3 mr-1" />
+                    ≥60% ({counts.progress60})
+                  </Button>
+                  <Button
+                    variant={quickFilters.includes('progress100') ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => handleQuickFilter('progress100')}
+                    className="h-7 text-xs"
+                  >
+                    <CheckCircle className="h-3 w-3 mr-1" />
+                    100% ({counts.progress100})
+                  </Button>
+                  <Badge variant="outline" className="text-xs">
+                    Total: {counts.total}
+                  </Badge>
+                </>
+              );
+            })()}
+          </div>
+          
           <div className="flex flex-wrap items-center gap-4">
             <div className="flex items-center space-x-2">
               <Search className="h-4 w-4 text-muted-foreground" />
@@ -622,11 +782,14 @@ export const OperationalPanel = () => {
             )}
 
             {/* Clear filters button */}
-            {(searchTerm || priorityFilter || selectedBPOs.length > 0) && (
+            {(searchTerm || priorityFilter || selectedBPOs.length > 0 || quickFilters.length > 0) && (
               <Button
                 variant="outline"
                 size="sm"
-                onClick={clearAllFilters}
+                onClick={() => {
+                  clearAllFilters();
+                  setQuickFilters([]);
+                }}
                 className="flex items-center space-x-1"
               >
                 <RotateCcw className="h-3 w-3" />
@@ -661,7 +824,7 @@ export const OperationalPanel = () => {
             </TabsList>
             
             <TabsContent value="pendentes" className="mt-6">
-              {renderCandidateTable(true)}
+              {renderCandidateTable(false)}
             </TabsContent>
             
             <TabsContent value="todos" className="mt-6">
