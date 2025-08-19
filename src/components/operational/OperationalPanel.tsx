@@ -322,12 +322,12 @@ export const OperationalPanel = () => {
                   <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
                     <div 
                       className={`h-full transition-all duration-300 ${
-                        (candidate.progresso_documentos || 0) < 60 ? 'bg-warning' : 'bg-primary'
+                        (candidate.progresso_documentos || 0) < 60 ? 'bg-orange-500' : 'bg-primary'
                       }`}
                       style={{ width: `${candidate.progresso_documentos || 0}%` }}
                     />
                   </div>
-                  <span className="text-xs">{candidate.progresso_documentos ? `${candidate.progresso_documentos}%` : 'N/A'}</span>
+                  <span className="text-xs">{candidate.progresso_documentos !== null && candidate.progresso_documentos !== undefined ? `${candidate.progresso_documentos}%` : '0%'}</span>
                 </div>
               </TableCell>
               <TableCell className="text-xs whitespace-nowrap">{candidate.bpo_responsavel || 'N/A'}</TableCell>
