@@ -42,6 +42,7 @@ interface BpoValidationExtract {
   candidate_name: string;
   processed_at: string;
   status_after: string;
+  data_admissao?: string;
 }
 
 export const Reports = () => {
@@ -92,7 +93,7 @@ export const Reports = () => {
     try {
       let query = supabase
         .from('candidate_activity_logs' as any)
-        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after');
+        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao');
 
       if (dateFrom) {
         query = query.gte('processed_at', dateFrom + 'T00:00:00');
@@ -113,7 +114,8 @@ export const Reports = () => {
         candidate_cpf: log.candidate_cpf || 'N/A',
         candidate_name: log.candidate_name || 'N/A',
         processed_at: log.processed_at,
-        status_after: log.status_after || 'N/A'
+        status_after: log.status_after || 'N/A',
+        data_admissao: log.data_admissao
       }));
       setBpoValidationExtract(extractData);
 
@@ -250,13 +252,14 @@ export const Reports = () => {
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status'];
+      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status', 'Data Admissão'];
       data = bpoValidationExtract.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
         extract.candidate_name,
         new Date(extract.processed_at).toLocaleDateString('pt-BR'),
-        extract.status_after
+        extract.status_after,
+        extract.data_admissao ? new Date(extract.data_admissao).toLocaleDateString('pt-BR') : 'N/A'
       ]);
       filename = 'extrato_validacoes_bpo';
     }
@@ -320,13 +323,14 @@ export const Reports = () => {
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status'];
+      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status', 'Data Admissão'];
       data = bpoValidationExtract.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
         extract.candidate_name,
         new Date(extract.processed_at).toLocaleDateString('pt-BR'),
-        extract.status_after
+        extract.status_after,
+        extract.data_admissao ? new Date(extract.data_admissao).toLocaleDateString('pt-BR') : 'N/A'
       ]);
       filename = 'extrato_validacoes_bpo';
     }
@@ -570,16 +574,17 @@ export const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>BPO</TableHead>
-                      <TableHead>CPF</TableHead>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Data</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>BPO</TableHead>
+                        <TableHead>CPF</TableHead>
+                        <TableHead>Nome</TableHead>
+                        <TableHead>Data</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Data Admissão</TableHead>
+                      </TableRow>
+                    </TableHeader>
                   <TableBody>
                     {bpoValidationExtract.map((extract, index) => (
                       <TableRow key={index}>
@@ -598,11 +603,14 @@ export const Reports = () => {
                             {extract.status_after}
                           </Badge>
                         </TableCell>
+                        <TableCell>
+                          {extract.data_admissao ? new Date(extract.data_admissao).toLocaleDateString('pt-BR') : 'N/A'}
+                        </TableCell>
                       </TableRow>
                     ))}
                     {bpoValidationExtract.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
+                        <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
                           Nenhum dado encontrado para o período selecionado
                         </TableCell>
                       </TableRow>

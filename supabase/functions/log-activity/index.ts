@@ -26,7 +26,8 @@ serve(async (req) => {
       status_after, 
       bpo_user_id, 
       bpo_name, 
-      notes 
+      notes,
+      data_admissao 
     } = await req.json()
 
     const { error } = await supabaseClient
@@ -40,7 +41,8 @@ serve(async (req) => {
         status_after,
         bpo_user_id,
         bpo_name,
-        notes
+        notes,
+        data_admissao
       })
 
     if (error) {

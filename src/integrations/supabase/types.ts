@@ -23,6 +23,7 @@ export type Database = {
           candidate_id: string
           candidate_name: string
           created_at: string
+          data_admissao: string | null
           id: string
           notes: string | null
           processed_at: string
@@ -38,6 +39,7 @@ export type Database = {
           candidate_id: string
           candidate_name: string
           created_at?: string
+          data_admissao?: string | null
           id?: string
           notes?: string | null
           processed_at?: string
@@ -53,6 +55,7 @@ export type Database = {
           candidate_id?: string
           candidate_name?: string
           created_at?: string
+          data_admissao?: string | null
           id?: string
           notes?: string | null
           processed_at?: string
