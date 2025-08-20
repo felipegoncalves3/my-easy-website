@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Checkbox } from '@/components/ui/checkbox';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight, X, RotateCcw, Copy, Zap, ScanLine, AlertTriangle } from 'lucide-react';
+import { Search, Eye, CheckCircle, Filter, ChevronLeft, ChevronRight, X, RotateCcw, Copy, Zap, ScanLine, AlertTriangle, ChevronUp, ChevronDown, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { Candidate } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
@@ -49,6 +49,8 @@ export const OperationalPanel = () => {
     return saved !== null ? JSON.parse(saved) : false;
   });
   const [quickFilters, setQuickFilters] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<'id_contratacao' | null>(null);
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const { user } = useAuth();
 
   // Load saved filters from localStorage
@@ -81,6 +83,14 @@ export const OperationalPanel = () => {
     if (name && name !== 'N/A') {
       navigator.clipboard.writeText(name);
       toast.success('Nome copiado!');
+    }
+  };
+
+  // Copy ID Contratação function
+  const copyIdContratacao = (id: number | null) => {
+    if (id !== null && id !== undefined) {
+      navigator.clipboard.writeText(id.toString());
+      toast.success('ID copiado para a área de transferência');
     }
   };
 
@@ -121,6 +131,21 @@ export const OperationalPanel = () => {
       setQuickFilters(quickFilters.filter(f => f !== filter));
     } else {
       setQuickFilters([...quickFilters, filter]);
+    }
+  };
+
+  // Handle sorting for ID Contratação
+  const handleSort = (column: 'id_contratacao') => {
+    if (sortBy === column) {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc');
+      } else {
+        setSortBy(null);
+        setSortOrder('asc');
+      }
+    } else {
+      setSortBy(column);
+      setSortOrder('asc');
     }
   };
 
@@ -308,6 +333,15 @@ export const OperationalPanel = () => {
       }
     });
 
+    // Apply sorting
+    if (sortBy === 'id_contratacao') {
+      filtered.sort((a, b) => {
+        const aValue = a.id_contratacao || 0;
+        const bValue = b.id_contratacao || 0;
+        return sortOrder === 'asc' ? aValue - bValue : bValue - aValue;
+      });
+    }
+
     setFilteredCandidates(filtered);
     setCurrentPage(1); // Reset to first page when filters change
   };
@@ -355,7 +389,7 @@ export const OperationalPanel = () => {
 
   useEffect(() => {
     applyFilters(searchTerm, priorityFilter, activeTab, selectedBPOs);
-  }, [candidates, activeTab, selectedBPOs, quickFilters]);
+  }, [candidates, activeTab, selectedBPOs, quickFilters, sortBy, sortOrder]);
 
   useEffect(() => {
     paginateResults();
@@ -374,7 +408,19 @@ export const OperationalPanel = () => {
       <Table className="w-auto text-sm table-modern">
         <TableHeader className="sticky top-0 bg-background z-10">
           <TableRow className="hover:bg-transparent border-b border-border/30">
-            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-0 bg-background z-20">ID Contratação</TableHead>
+            <TableHead 
+              className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-0 bg-background z-20 cursor-pointer hover:bg-muted/50 transition-colors"
+              onClick={() => handleSort('id_contratacao')}
+            >
+              <div className="flex items-center gap-1">
+                ID Contratação
+                {sortBy === 'id_contratacao' && (
+                  sortOrder === 'asc' ? 
+                    <ChevronUp className="h-3 w-3" /> : 
+                    <ChevronDown className="h-3 w-3" />
+                )}
+              </div>
+            </TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground sticky left-[120px] bg-background z-20 min-w-[250px]">Nome</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">CPF</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status Contratação</TableHead>
@@ -383,13 +429,31 @@ export const OperationalPanel = () => {
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">BPO Responsável</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Prioridade</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground">Status</TableHead>
+            <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center">Acesso</TableHead>
             <TableHead className="text-xs w-auto whitespace-nowrap font-semibold text-muted-foreground text-center sticky right-0 bg-background z-20">Ações</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {paginatedCandidates.map((candidate) => (
             <TableRow key={candidate.id} className={`table-row-modern ${isCompactMode ? 'h-8' : 'h-12'}`}>
-              <TableCell className="font-medium text-xs whitespace-nowrap sticky left-0 bg-background">{candidate.id_contratacao || 'N/A'}</TableCell>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <TableCell 
+                      className="font-medium text-xs whitespace-nowrap sticky left-0 bg-background cursor-pointer hover:bg-muted/50 transition-colors"
+                      onClick={() => copyIdContratacao(candidate.id_contratacao)}
+                    >
+                      <div className="flex items-center gap-1">
+                        {candidate.id_contratacao || 'N/A'}
+                        {candidate.id_contratacao && <Copy className="h-3 w-3 opacity-50" />}
+                      </div>
+                    </TableCell>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Copiar ID</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -475,6 +539,31 @@ export const OperationalPanel = () => {
                 >
                   {candidate.bpo_validou ? "Validado" : "Pendente"}
                 </Badge>
+              </TableCell>
+              <TableCell className="text-center">
+                {candidate.id_contratacao && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0"
+                          onClick={() => {
+                            const url = `https://tecfyrh.com.br/admissions/${candidate.id_contratacao}?menu=document`;
+                            window.open(url, '_blank', 'noopener,noreferrer');
+                          }}
+                          aria-label={`Abrir Admissão ${candidate.id_contratacao}`}
+                        >
+                          <ExternalLink className="h-3 w-3" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Abrir Admissão</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
               </TableCell>
               <TableCell className="whitespace-nowrap sticky right-0 bg-background">
                 <div className="flex space-x-1">
