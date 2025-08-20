@@ -50,6 +50,7 @@ export const Reports = () => {
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [bpoStats, setBpoStats] = useState<BpoValidationStats[]>([]);
   const [bpoValidationExtract, setBpoValidationExtract] = useState<BpoValidationExtract[]>([]);
+  const [bpoValidationExportData, setBpoValidationExportData] = useState<BpoValidationExtract[]>([]);
   const [bpoValidationAverages, setBpoValidationAverages] = useState<BpoValidationAverages[]>([]);
   const [timeBetweenValidations, setTimeBetweenValidations] = useState<TimeBetweenValidations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -91,26 +92,46 @@ export const Reports = () => {
 
   const loadActivityReports = async () => {
     try {
-      let query = supabase
+      // Query para exibição na tela (limitada a 10 registros)
+      let displayQuery = supabase
         .from('candidate_activity_logs' as any)
         .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
         .order('processed_at', { ascending: false })
         .limit(10);
 
       if (dateFrom) {
-        query = query.gte('processed_at', dateFrom + 'T00:00:00');
+        displayQuery = displayQuery.gte('processed_at', dateFrom + 'T00:00:00');
       }
       if (dateTo) {
-        query = query.lte('processed_at', dateTo + 'T23:59:59');
+        displayQuery = displayQuery.lte('processed_at', dateTo + 'T23:59:59');
+      }
+
+      // Query para exportação (todos os registros)
+      let exportQuery = supabase
+        .from('candidate_activity_logs' as any)
+        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
+        .order('processed_at', { ascending: false });
+
+      if (dateFrom) {
+        exportQuery = exportQuery.gte('processed_at', dateFrom + 'T00:00:00');
+      }
+      if (dateTo) {
+        exportQuery = exportQuery.lte('processed_at', dateTo + 'T23:59:59');
       }
       
-      const { data: activityData, error } = await query;
-      if (error) throw error;
+      const [{ data: displayData, error: displayError }, { data: exportData, error: exportError }] = await Promise.all([
+        displayQuery,
+        exportQuery
+      ]);
 
-      const typedActivityData = (activityData || []) as any[];
+      if (displayError) throw displayError;
+      if (exportError) throw exportError;
 
-      // Preparar extrato de validações para a aba 2
-      const extractData = typedActivityData.map(log => ({
+      const typedDisplayData = (displayData || []) as any[];
+      const typedExportData = (exportData || []) as any[];
+
+      // Preparar extrato de validações para a aba 2 (apenas exibição - 10 registros)
+      const extractData = typedDisplayData.map(log => ({
         bpo_name: log.bpo_name || 'Sem BPO',
         candidate_cpf: log.candidate_cpf || 'N/A',
         candidate_name: log.candidate_name || 'N/A',
@@ -120,8 +141,20 @@ export const Reports = () => {
       }));
       setBpoValidationExtract(extractData);
 
-      // Filtrar apenas registros validados para os outros relatórios
-      const validatedData = typedActivityData.filter(log => 
+      // Preparar dados completos para exportação
+      const exportExtractData = typedExportData.map(log => ({
+        bpo_name: log.bpo_name || 'Sem BPO',
+        candidate_cpf: log.candidate_cpf || 'N/A',
+        candidate_name: log.candidate_name || 'N/A',
+        processed_at: log.processed_at,
+        status_after: log.status_after || 'N/A',
+        data_admissao: log.data_admissao
+      }));
+      // Armazenar dados de exportação em uma nova variável de estado
+      setBpoValidationExportData(exportExtractData);
+
+      // Filtrar apenas registros validados para os outros relatórios (usar dados de exportação completos)
+      const validatedData = typedExportData.filter(log => 
         ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(log.status_after)
       );
 
@@ -254,7 +287,7 @@ export const Reports = () => {
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
       headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status', 'Data Admissão'];
-      data = bpoValidationExtract.map(extract => [
+      data = bpoValidationExportData.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
         extract.candidate_name,
@@ -325,7 +358,7 @@ export const Reports = () => {
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
       headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status', 'Data Admissão'];
-      data = bpoValidationExtract.map(extract => [
+      data = bpoValidationExportData.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
         extract.candidate_name,
