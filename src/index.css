@@ -15,18 +15,18 @@
     --popover-foreground: 222.2 84% 4.9%;
 
     /* Brand - Green Theme */
-    --primary: 88 85% 50%;
-    --primary-variant: 88 75% 45%;
-    --primary-glow: 88 95% 70%;
+    --primary: 139 69% 48%;
+    --primary-variant: 139 69% 42%;
+    --primary-glow: 139 69% 75%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 90%;
+    --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 15%;
 
-    --muted: 0 0% 95%;
-    --muted-foreground: 0 0% 45%;
+    --muted: 210 40% 98%;
+    --muted-foreground: 215 16% 47%;
 
-    --accent: 0 0% 90%;
+    --accent: 210 40% 96%;
     --accent-foreground: 0 0% 15%;
 
     --destructive: 0 84.2% 60.2%;
@@ -37,20 +37,20 @@
     --success: 120 60% 50%;
     --success-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 258 90% 60%;
+    --border: 214 32% 91%;
+    --input: 214 32% 91%;
+    --ring: 139 69% 78%;
 
     --radius: 0.75rem;
 
     --sidebar-background: 0 0% 96%;
     --sidebar-foreground: 0 0% 15%;
-    --sidebar-primary: 88 85% 50%;
+    --sidebar-primary: 139 69% 48%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 92%;
+    --sidebar-accent: 0 0% 94%;
     --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 85%;
-    --sidebar-ring: 88 85% 50%;
+    --sidebar-border: 0 0% 87%;
+    --sidebar-ring: 139 69% 48%;
 
     /* Gradients & shadows */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-variant)));
@@ -70,18 +70,18 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 88 85% 55%;
-    --primary-variant: 88 75% 50%;
-    --primary-glow: 88 95% 75%;
+    --primary: 139 69% 58%;
+    --primary-variant: 139 69% 52%;
+    --primary-glow: 139 69% 85%;
     --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 20%;
+    --secondary: 217 33% 17%;
     --secondary-foreground: 0 0% 95%;
 
-    --muted: 0 0% 25%;
-    --muted-foreground: 0 0% 70%;
+    --muted: 217 33% 17%;
+    --muted-foreground: 215 20% 65%;
 
-    --accent: 0 0% 20%;
+    --accent: 217 33% 17%;
     --accent-foreground: 0 0% 95%;
 
     --destructive: 0 62.8% 30.6%;
@@ -98,12 +98,12 @@
 
     --sidebar-background: 0 0% 8%;
     --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 88 85% 55%;
+    --sidebar-primary: 139 69% 58%;
     --sidebar-primary-foreground: 0 0% 0%;
     --sidebar-accent: 0 0% 15%;
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 88 85% 55%;
+    --sidebar-ring: 139 69% 58%;
   }
 }
 
@@ -130,6 +130,16 @@
   }
   .feature-card { transition: transform .25s ease, box-shadow .3s ease; }
   .feature-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-elevated); }
+  
+  /* Tabular numbers for consistent digit alignment */
+  .tabular-nums { font-variant-numeric: tabular-nums; }
+  
+  /* Modern table styles */
+  .table-modern .table-row-zebra:nth-child(even) { @apply bg-muted/20; }
+  .table-modern .table-row-zebra:hover { @apply bg-accent transition-colors; }
+  
+  /* Smooth transitions */
+  .transition-smooth { transition: all 0.15s ease-out; }
 
   /* Signature pointer glow */
   .pointer-glow { position: absolute; inset: 0; }
