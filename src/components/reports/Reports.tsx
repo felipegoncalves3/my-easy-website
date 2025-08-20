@@ -250,7 +250,7 @@ export const Reports = () => {
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'Código', 'Nome', 'Data', 'Status'];
+      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status'];
       data = bpoValidationExtract.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
@@ -320,7 +320,7 @@ export const Reports = () => {
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'Código', 'Nome', 'Data', 'Status'];
+      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status'];
       data = bpoValidationExtract.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
@@ -574,7 +574,7 @@ export const Reports = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>BPO</TableHead>
-                      <TableHead>Código</TableHead>
+                      <TableHead>CPF</TableHead>
                       <TableHead>Nome</TableHead>
                       <TableHead>Data</TableHead>
                       <TableHead>Status</TableHead>
