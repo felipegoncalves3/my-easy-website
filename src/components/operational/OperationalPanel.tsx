@@ -207,6 +207,7 @@ export const OperationalPanel = () => {
 
       // Registrar atividade no log usando edge function
       console.log('Tentando registrar log de atividade para candidato:', candidateId);
+      console.log('Data de admissão do candidato:', candidateData.data_admissao);
       try {
         const { data: logData, error: logError } = await supabase.functions.invoke('log-activity', {
           body: {
@@ -219,7 +220,7 @@ export const OperationalPanel = () => {
             bpo_user_id: user?.id,
             bpo_name: user?.full_name || user?.username,
             notes: `Candidato validado por ${user?.full_name || user?.username}`,
-            data_admissao: candidateData.data_admissao || null
+            data_admissao: candidateData.data_admissao
           }
         });
 

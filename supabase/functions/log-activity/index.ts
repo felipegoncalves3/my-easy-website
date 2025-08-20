@@ -30,6 +30,8 @@ serve(async (req) => {
       data_admissao 
     } = await req.json()
 
+    console.log('Edge function recebeu data_admissao:', data_admissao);
+
     const { error } = await supabaseClient
       .from('candidate_activity_logs')
       .insert({
