@@ -206,8 +206,9 @@ export const OperationalPanel = () => {
       if (error) throw error;
 
       // Registrar atividade no log usando edge function
+      console.log('Tentando registrar log de atividade para candidato:', candidateId);
       try {
-        const { error: logError } = await supabase.functions.invoke('log-activity', {
+        const { data: logData, error: logError } = await supabase.functions.invoke('log-activity', {
           body: {
             candidate_id: candidateId,
             candidate_name: candidateData.nome,
@@ -223,6 +224,8 @@ export const OperationalPanel = () => {
 
         if (logError) {
           console.error('Erro ao registrar log de atividade:', logError);
+        } else {
+          console.log('Log de atividade registrado com sucesso:', logData);
         }
       } catch (logError) {
         console.error('Erro ao registrar log de atividade:', logError);
