@@ -92,7 +92,7 @@ export const Reports = () => {
         query = query.lte('processed_at', dateTo + 'T23:59:59');
       }
       // Filtrar apenas registros validados
-      query = query.eq('status_after', 'Validado');
+      query = query.in('status_after', ['Validado','validado','VALIDADO']);
 
       const { data: activityData, error } = await query;
       if (error) throw error;
