@@ -24,10 +24,11 @@ interface BpoValidationStats {
   total_validations: number;
 }
 
-interface ValidationAverages {
+interface BpoValidationAverages {
+  bpo_name: string;
   daily_average: number;
   monthly_average: number;
-  minute_average: number;
+  total_validations: number;
 }
 
 interface TimeBetweenValidations {
@@ -35,31 +36,16 @@ interface TimeBetweenValidations {
   average_time_minutes: number;
 }
 
-interface CandidateActivityLog {
-  id: string;
-  candidate_id: string;
-  candidate_name: string;
-  bpo_user_id: string;
-  bpo_name: string;
-  action_type: string;
-  status_before: string;
-  status_after: string;
-  processed_at: string;
-  notes?: string;
-  candidate_cpf?: string;
-  created_at: string;
-}
-
 export const Reports = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [bpoStats, setBpoStats] = useState<BpoValidationStats[]>([]);
-  const [validationAverages, setValidationAverages] = useState<ValidationAverages | null>(null);
+  const [bpoValidationAverages, setBpoValidationAverages] = useState<BpoValidationAverages[]>([]);
   const [timeBetweenValidations, setTimeBetweenValidations] = useState<TimeBetweenValidations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
-  const [activeTab, setActiveTab] = useState('geral');
+  const [activeTab, setActiveTab] = useState('relatorios');
 
   const loadReportsData = async () => {
     try {
@@ -97,7 +83,7 @@ export const Reports = () => {
     try {
       let query = supabase
         .from('candidate_activity_logs' as any)
-        .select('bpo_name,bpo_user_id,processed_at,status_after');
+        .select('candidate_id,bpo_name,bpo_user_id,processed_at,status_after');
 
       if (dateFrom) {
         query = query.gte('processed_at', dateFrom + 'T00:00:00');
@@ -105,7 +91,7 @@ export const Reports = () => {
       if (dateTo) {
         query = query.lte('processed_at', dateTo + 'T23:59:59');
       }
-      // Filtrar apenas registros validados diretamente no banco para reduzir payload
+      // Filtrar apenas registros validados
       query = query.eq('status_after', 'Validado');
 
       const { data: activityData, error } = await query;
@@ -113,63 +99,61 @@ export const Reports = () => {
 
       const typedActivityData = (activityData || []) as any[];
 
-      // Relatório 1: Quantidade de validados por BPO
-      const bpoValidations = typedActivityData
-        ?.filter(log => log.status_after === 'Validado')
-        .reduce((acc, log) => {
-          const bpo = log.bpo_name || 'Sem BPO';
-          acc[bpo] = (acc[bpo] || 0) + 1;
-          return acc;
-        }, {} as Record<string, number>);
+      // Relatório 1: Quantidade de validados por BPO (considera repetições como +1)
+      const bpoValidations = typedActivityData.reduce((acc, log) => {
+        const bpo = log.bpo_name || 'Sem BPO';
+        acc[bpo] = (acc[bpo] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
 
       setBpoStats(Object.entries(bpoValidations || {}).map(([bpo_name, total_validations]) => ({
         bpo_name,
         total_validations: total_validations as number
       })));
 
-      // Relatório 2: Quantidade média de validados
-      const validatedLogs = typedActivityData || [];
-      if (validatedLogs.length > 0) {
-        // Por dia
-        const dayGroups = validatedLogs.reduce((acc, log) => {
+      // Relatório 2: Média de validações por dia e mês por cada BPO
+      const bpoAverages = Object.entries(
+        typedActivityData.reduce((acc, log) => {
+          const bpo = log.bpo_name || 'Sem BPO';
+          if (!acc[bpo]) acc[bpo] = [];
+          acc[bpo].push(log);
+          return acc;
+        }, {} as Record<string, any[]>)
+      ).map(([bpo_name, logs]) => {
+        const validLogs = Array.isArray(logs) ? logs : [];
+        if (validLogs.length === 0) return null;
+
+        // Agrupar por dia
+        const dayGroups = validLogs.reduce((acc, log) => {
           const date = new Date(log.processed_at).toDateString();
           acc[date] = (acc[date] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        const dailyAverage = (Object.values(dayGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(dayGroups).length;
+        const dailyAverage = Object.keys(dayGroups).length > 0 ? 
+          (Object.values(dayGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(dayGroups).length : 0;
 
-        // Por mês
-        const monthGroups = validatedLogs.reduce((acc, log) => {
+        // Agrupar por mês
+        const monthGroups = validLogs.reduce((acc, log) => {
           const date = new Date(log.processed_at);
           const month = `${date.getFullYear()}-${date.getMonth() + 1}`;
           acc[month] = (acc[month] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        const monthlyAverage = (Object.values(monthGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(monthGroups).length;
+        const monthlyAverage = Object.keys(monthGroups).length > 0 ? 
+          (Object.values(monthGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(monthGroups).length : 0;
 
-        // Por minuto (com base no intervalo selecionado ou últimas 24h)
-        let minuteAverage = 0;
-        if (dateFrom && dateTo) {
-          const start = new Date(dateFrom + 'T00:00:00');
-          const end = new Date(dateTo + 'T23:59:59');
-          const minutes = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60));
-          minuteAverage = validatedLogs.length / minutes;
-        } else {
-          const now = new Date();
-          const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-          const recentLogs = validatedLogs.filter(log => new Date(log.processed_at) >= yesterday);
-          minuteAverage = recentLogs.length / (24 * 60);
-        }
-
-        setValidationAverages({
+        return {
+          bpo_name,
           daily_average: dailyAverage,
           monthly_average: monthlyAverage,
-          minute_average: minuteAverage
-        });
-      }
+          total_validations: validLogs.length
+        };
+      }).filter(Boolean) as BpoValidationAverages[];
 
-      // Relatório 3: Tempo médio entre validações
-      const bpoGroups = validatedLogs.reduce((acc, log) => {
+      setBpoValidationAverages(bpoAverages);
+
+      // Relatório 3: Tempo médio entre validações por BPO
+      const bpoGroups = typedActivityData.reduce((acc, log) => {
         const bpoId = log.bpo_user_id || 'unknown';
         if (!acc[bpoId]) acc[bpoId] = [];
         acc[bpoId].push({
@@ -208,11 +192,17 @@ export const Reports = () => {
   };
 
   const exportToCsv = () => {
+    // Só permite exportação nas abas 1 e 2
+    if (activeTab !== 'relatorios' && activeTab !== 'validacoes-bpo') {
+      toast.error('Exportação disponível apenas para as abas Relatórios e Validações por BPO');
+      return;
+    }
+
     let data: any[] = [];
     let filename = '';
     let headers: string[] = [];
 
-    if (activeTab === 'geral') {
+    if (activeTab === 'relatorios') {
       headers = [
         'ID Contratação',
         'Nome',
@@ -236,22 +226,10 @@ export const Reports = () => {
         new Date(candidate.created_at).toLocaleDateString('pt-BR')
       ]);
       filename = 'candidatos';
-    } else if (activeTab === 'bpo-validacoes') {
+    } else if (activeTab === 'validacoes-bpo') {
       headers = ['BPO', 'Total de Validações'];
       data = bpoStats.map(stat => [stat.bpo_name, stat.total_validations]);
       filename = 'validacoes_por_bpo';
-    } else if (activeTab === 'media-validacoes') {
-      headers = ['Período', 'Média'];
-      data = [
-        ['Diária', validationAverages?.daily_average?.toFixed(2) || '0'],
-        ['Mensal', validationAverages?.monthly_average?.toFixed(2) || '0'],
-        ['Por Minuto', validationAverages?.minute_average?.toFixed(4) || '0']
-      ];
-      filename = 'media_validacoes';
-    } else if (activeTab === 'tempo-validacoes') {
-      headers = ['BPO', 'Tempo Médio (minutos)'];
-      data = timeBetweenValidations.map(stat => [stat.bpo_name, stat.average_time_minutes.toFixed(2)]);
-      filename = 'tempo_entre_validacoes';
     }
 
     try {
@@ -278,11 +256,17 @@ export const Reports = () => {
   };
 
   const exportToXlsx = () => {
+    // Só permite exportação nas abas 1 e 2
+    if (activeTab !== 'relatorios' && activeTab !== 'validacoes-bpo') {
+      toast.error('Exportação disponível apenas para as abas Relatórios e Validações por BPO');
+      return;
+    }
+
     let data: any[] = [];
     let filename = '';
     let headers: string[] = [];
 
-    if (activeTab === 'geral') {
+    if (activeTab === 'relatorios') {
       headers = [
         'ID Contratação',
         'Nome',
@@ -306,22 +290,10 @@ export const Reports = () => {
         new Date(candidate.created_at).toLocaleDateString('pt-BR')
       ]);
       filename = 'candidatos';
-    } else if (activeTab === 'bpo-validacoes') {
+    } else if (activeTab === 'validacoes-bpo') {
       headers = ['BPO', 'Total de Validações'];
       data = bpoStats.map(stat => [stat.bpo_name, stat.total_validations]);
       filename = 'validacoes_por_bpo';
-    } else if (activeTab === 'media-validacoes') {
-      headers = ['Período', 'Média'];
-      data = [
-        ['Diária', validationAverages?.daily_average?.toFixed(2) || '0'],
-        ['Mensal', validationAverages?.monthly_average?.toFixed(2) || '0'],
-        ['Por Minuto', validationAverages?.minute_average?.toFixed(4) || '0']
-      ];
-      filename = 'media_validacoes';
-    } else if (activeTab === 'tempo-validacoes') {
-      headers = ['BPO', 'Tempo Médio (minutos)'];
-      data = timeBetweenValidations.map(stat => [stat.bpo_name, stat.average_time_minutes.toFixed(2)]);
-      filename = 'tempo_entre_validacoes';
     }
 
     try {
@@ -367,16 +339,25 @@ export const Reports = () => {
       Math.round((candidates.filter(c => c.bpo_validou).length / candidates.length) * 100) : 0
   };
 
+  const canExport = activeTab === 'relatorios' || activeTab === 'validacoes-bpo';
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Relatórios</h1>
         <div className="flex gap-2">
-          <Button onClick={exportToCsv} variant="outline">
+          <Button 
+            onClick={exportToCsv} 
+            variant="outline"
+            disabled={!canExport}
+          >
             <Download className="mr-2 h-4 w-4" />
             CSV
           </Button>
-          <Button onClick={exportToXlsx}>
+          <Button 
+            onClick={exportToXlsx}
+            disabled={!canExport}
+          >
             <Download className="mr-2 h-4 w-4" />
             XLSX
           </Button>
@@ -420,13 +401,14 @@ export const Reports = () => {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="geral">Geral</TabsTrigger>
-          <TabsTrigger value="bpo-validacoes">Validações por BPO</TabsTrigger>
-          <TabsTrigger value="media-validacoes">Média de Validações</TabsTrigger>
-          <TabsTrigger value="tempo-validacoes">Tempo entre Validações</TabsTrigger>
+          <TabsTrigger value="relatorios">Relatórios</TabsTrigger>
+          <TabsTrigger value="validacoes-bpo">Validações por BPO</TabsTrigger>
+          <TabsTrigger value="media-validacoes">Média de Validações por BPO</TabsTrigger>
+          <TabsTrigger value="tempo-validacoes">Tempo Médio entre Validações</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="geral" className="space-y-6">
+        {/* Aba 1: Relatórios - Dados dos candidatos */}
+        <TabsContent value="relatorios" className="space-y-6">
           {/* Resumo Estatístico */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card>
@@ -545,7 +527,8 @@ export const Reports = () => {
           </div>
         </TabsContent>
 
-        <TabsContent value="bpo-validacoes">
+        {/* Aba 2: Validações por BPO */}
+        <TabsContent value="validacoes-bpo">
           <Card>
             <CardHeader>
               <CardTitle>Quantidade de Validados por BPO</CardTitle>
@@ -587,53 +570,47 @@ export const Reports = () => {
           </Card>
         </TabsContent>
 
+        {/* Aba 3: Média de Validações por BPO */}
         <TabsContent value="media-validacoes">
           <Card>
             <CardHeader>
-              <CardTitle>Quantidade Média de Validações</CardTitle>
+              <CardTitle>Média de Validações por Dia e Mês por BPO</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Média Diária</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {validationAverages?.daily_average?.toFixed(2) || '0'}
-                    </div>
-                    <p className="text-sm text-muted-foreground">validações por dia</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Média Mensal</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {validationAverages?.monthly_average?.toFixed(2) || '0'}
-                    </div>
-                    <p className="text-sm text-muted-foreground">validações por mês</p>
-                  </CardContent>
-                </Card>
-
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium">Média por Minuto</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">
-                      {validationAverages?.minute_average?.toFixed(4) || '0'}
-                    </div>
-                    <p className="text-sm text-muted-foreground">validações por minuto</p>
-                  </CardContent>
-                </Card>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>BPO</TableHead>
+                      <TableHead>Média Diária</TableHead>
+                      <TableHead>Média Mensal</TableHead>
+                      <TableHead>Total Validações</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bpoValidationAverages.map((stat, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">{stat.bpo_name}</TableCell>
+                        <TableCell>{stat.daily_average.toFixed(2)}</TableCell>
+                        <TableCell>{stat.monthly_average.toFixed(2)}</TableCell>
+                        <TableCell>{stat.total_validations}</TableCell>
+                      </TableRow>
+                    ))}
+                    {bpoValidationAverages.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground py-4">
+                          Nenhum dado encontrado para o período selecionado
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
 
+        {/* Aba 4: Tempo médio entre validações */}
         <TabsContent value="tempo-validacoes">
           <Card>
             <CardHeader>
