@@ -93,7 +93,9 @@ export const Reports = () => {
     try {
       let query = supabase
         .from('candidate_activity_logs' as any)
-        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao');
+        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
+        .order('processed_at', { ascending: false })
+        .limit(10);
 
       if (dateFrom) {
         query = query.gte('processed_at', dateFrom + 'T00:00:00');
@@ -101,7 +103,6 @@ export const Reports = () => {
       if (dateTo) {
         query = query.lte('processed_at', dateTo + 'T23:59:59');
       }
-      // Filtrar registros sem filtro inicial para pegar todos os tipos de status
       
       const { data: activityData, error } = await query;
       if (error) throw error;

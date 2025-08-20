@@ -219,7 +219,7 @@ export const OperationalPanel = () => {
             bpo_user_id: user?.id,
             bpo_name: user?.full_name || user?.username,
             notes: `Candidato validado por ${user?.full_name || user?.username}`,
-            data_admissao: candidateData.data_admissao
+            data_admissao: candidateData.data_admissao || null
           }
         });
 
