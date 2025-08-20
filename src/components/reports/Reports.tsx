@@ -97,7 +97,7 @@ export const Reports = () => {
     try {
       let query = supabase
         .from('candidate_activity_logs' as any)
-        .select('*');
+        .select('bpo_name,bpo_user_id,processed_at,status_after');
 
       if (dateFrom) {
         query = query.gte('processed_at', dateFrom + 'T00:00:00');
@@ -105,6 +105,8 @@ export const Reports = () => {
       if (dateTo) {
         query = query.lte('processed_at', dateTo + 'T23:59:59');
       }
+      // Filtrar apenas registros validados diretamente no banco para reduzir payload
+      query = query.eq('status_after', 'Validado');
 
       const { data: activityData, error } = await query;
       if (error) throw error;
@@ -126,7 +128,7 @@ export const Reports = () => {
       })));
 
       // Relatório 2: Quantidade média de validados
-      const validatedLogs = typedActivityData?.filter(log => log.status_after === 'Validado') || [];
+      const validatedLogs = typedActivityData || [];
       if (validatedLogs.length > 0) {
         // Por dia
         const dayGroups = validatedLogs.reduce((acc, log) => {
@@ -145,11 +147,19 @@ export const Reports = () => {
         }, {} as Record<string, number>);
         const monthlyAverage = (Object.values(monthGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(monthGroups).length;
 
-        // Por minuto (últimas 24h)
-        const now = new Date();
-        const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
-        const recentLogs = validatedLogs.filter(log => new Date(log.processed_at) >= yesterday);
-        const minuteAverage = recentLogs.length / (24 * 60);
+        // Por minuto (com base no intervalo selecionado ou últimas 24h)
+        let minuteAverage = 0;
+        if (dateFrom && dateTo) {
+          const start = new Date(dateFrom + 'T00:00:00');
+          const end = new Date(dateTo + 'T23:59:59');
+          const minutes = Math.max(1, (end.getTime() - start.getTime()) / (1000 * 60));
+          minuteAverage = validatedLogs.length / minutes;
+        } else {
+          const now = new Date();
+          const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+          const recentLogs = validatedLogs.filter(log => new Date(log.processed_at) >= yesterday);
+          minuteAverage = recentLogs.length / (24 * 60);
+        }
 
         setValidationAverages({
           daily_average: dailyAverage,
@@ -616,7 +626,7 @@ export const Reports = () => {
                     <div className="text-2xl font-bold">
                       {validationAverages?.minute_average?.toFixed(4) || '0'}
                     </div>
-                    <p className="text-sm text-muted-foreground">validações por minuto (24h)</p>
+                    <p className="text-sm text-muted-foreground">validações por minuto</p>
                   </CardContent>
                 </Card>
               </div>
