@@ -1,0 +1,2 @@
+-- This migration ensures the candidate_activity_logs table is included in TypeScript types
+-- No actual changes needed, just refreshing the schema

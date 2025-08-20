@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      candidate_activity_logs: {
+        Row: {
+          action_type: string
+          bpo_name: string | null
+          bpo_user_id: string | null
+          candidate_cpf: string | null
+          candidate_id: string
+          candidate_name: string
+          created_at: string
+          id: string
+          notes: string | null
+          processed_at: string
+          status_after: string | null
+          status_before: string | null
+          updated_at: string
+        }
+        Insert: {
+          action_type: string
+          bpo_name?: string | null
+          bpo_user_id?: string | null
+          candidate_cpf?: string | null
+          candidate_id: string
+          candidate_name: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string
+          status_after?: string | null
+          status_before?: string | null
+          updated_at?: string
+        }
+        Update: {
+          action_type?: string
+          bpo_name?: string | null
+          bpo_user_id?: string | null
+          candidate_cpf?: string | null
+          candidate_id?: string
+          candidate_name?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          processed_at?: string
+          status_after?: string | null
+          status_before?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       candidates: {
         Row: {
           bpo_que_validou: string | null
