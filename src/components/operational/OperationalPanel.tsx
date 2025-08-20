@@ -205,6 +205,25 @@ export const OperationalPanel = () => {
 
       if (error) throw error;
 
+      // Registrar atividade no log
+      const { error: logError } = await supabase
+        .from('candidate_activity_logs')
+        .insert({
+          candidate_id: candidateId,
+          candidate_name: candidateData.nome,
+          candidate_cpf: candidateData.cpf,
+          action_type: 'VALIDATION',
+          status_before: candidateData.status || 'pendente',
+          status_after: 'validado',
+          bpo_user_id: user?.id,
+          bpo_name: user?.full_name || user?.username,
+          notes: `Candidato validado por ${user?.full_name || user?.username}`
+        });
+
+      if (logError) {
+        console.error('Erro ao registrar log de atividade:', logError);
+      }
+
       // Buscar dados atualizados do candidato
       const { data: updatedCandidate, error: updatedError } = await supabase
         .from('candidates')
