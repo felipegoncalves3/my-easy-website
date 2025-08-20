@@ -36,10 +36,19 @@ interface TimeBetweenValidations {
   average_time_minutes: number;
 }
 
+interface BpoValidationExtract {
+  bpo_name: string;
+  candidate_cpf: string;
+  candidate_name: string;
+  processed_at: string;
+  status_after: string;
+}
+
 export const Reports = () => {
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [bpoStats, setBpoStats] = useState<BpoValidationStats[]>([]);
+  const [bpoValidationExtract, setBpoValidationExtract] = useState<BpoValidationExtract[]>([]);
   const [bpoValidationAverages, setBpoValidationAverages] = useState<BpoValidationAverages[]>([]);
   const [timeBetweenValidations, setTimeBetweenValidations] = useState<TimeBetweenValidations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,7 +92,7 @@ export const Reports = () => {
     try {
       let query = supabase
         .from('candidate_activity_logs' as any)
-        .select('candidate_id,bpo_name,bpo_user_id,processed_at,status_after');
+        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after');
 
       if (dateFrom) {
         query = query.gte('processed_at', dateFrom + 'T00:00:00');
@@ -91,16 +100,30 @@ export const Reports = () => {
       if (dateTo) {
         query = query.lte('processed_at', dateTo + 'T23:59:59');
       }
-      // Filtrar apenas registros validados
-      query = query.in('status_after', ['Validado','validado','VALIDADO']);
-
+      // Filtrar registros sem filtro inicial para pegar todos os tipos de status
+      
       const { data: activityData, error } = await query;
       if (error) throw error;
 
       const typedActivityData = (activityData || []) as any[];
 
+      // Preparar extrato de validações para a aba 2
+      const extractData = typedActivityData.map(log => ({
+        bpo_name: log.bpo_name || 'Sem BPO',
+        candidate_cpf: log.candidate_cpf || 'N/A',
+        candidate_name: log.candidate_name || 'N/A',
+        processed_at: log.processed_at,
+        status_after: log.status_after || 'N/A'
+      }));
+      setBpoValidationExtract(extractData);
+
+      // Filtrar apenas registros validados para os outros relatórios
+      const validatedData = typedActivityData.filter(log => 
+        ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(log.status_after)
+      );
+
       // Relatório 1: Quantidade de validados por BPO (considera repetições como +1)
-      const bpoValidations = typedActivityData.reduce((acc, log) => {
+      const bpoValidations = validatedData.reduce((acc, log) => {
         const bpo = log.bpo_name || 'Sem BPO';
         acc[bpo] = (acc[bpo] || 0) + 1;
         return acc;
@@ -113,7 +136,7 @@ export const Reports = () => {
 
       // Relatório 2: Média de validações por dia e mês por cada BPO
       const bpoAverages = Object.entries(
-        typedActivityData.reduce((acc, log) => {
+        validatedData.reduce((acc, log) => {
           const bpo = log.bpo_name || 'Sem BPO';
           if (!acc[bpo]) acc[bpo] = [];
           acc[bpo].push(log);
@@ -153,7 +176,7 @@ export const Reports = () => {
       setBpoValidationAverages(bpoAverages);
 
       // Relatório 3: Tempo médio entre validações por BPO
-      const bpoGroups = typedActivityData.reduce((acc, log) => {
+      const bpoGroups = validatedData.reduce((acc, log) => {
         const bpoId = log.bpo_user_id || 'unknown';
         if (!acc[bpoId]) acc[bpoId] = [];
         acc[bpoId].push({
@@ -227,9 +250,15 @@ export const Reports = () => {
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'Total de Validações'];
-      data = bpoStats.map(stat => [stat.bpo_name, stat.total_validations]);
-      filename = 'validacoes_por_bpo';
+      headers = ['BPO', 'Código', 'Nome', 'Data', 'Status'];
+      data = bpoValidationExtract.map(extract => [
+        extract.bpo_name,
+        extract.candidate_cpf,
+        extract.candidate_name,
+        new Date(extract.processed_at).toLocaleDateString('pt-BR'),
+        extract.status_after
+      ]);
+      filename = 'extrato_validacoes_bpo';
     }
 
     try {
@@ -291,9 +320,15 @@ export const Reports = () => {
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'Total de Validações'];
-      data = bpoStats.map(stat => [stat.bpo_name, stat.total_validations]);
-      filename = 'validacoes_por_bpo';
+      headers = ['BPO', 'Código', 'Nome', 'Data', 'Status'];
+      data = bpoValidationExtract.map(extract => [
+        extract.bpo_name,
+        extract.candidate_cpf,
+        extract.candidate_name,
+        new Date(extract.processed_at).toLocaleDateString('pt-BR'),
+        extract.status_after
+      ]);
+      filename = 'extrato_validacoes_bpo';
     }
 
     try {
@@ -531,7 +566,7 @@ export const Reports = () => {
         <TabsContent value="validacoes-bpo">
           <Card>
             <CardHeader>
-              <CardTitle>Quantidade de Validados por BPO</CardTitle>
+              <CardTitle>Extrato de Validações dos BPO</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
@@ -539,19 +574,35 @@ export const Reports = () => {
                   <TableHeader>
                     <TableRow>
                       <TableHead>BPO</TableHead>
-                      <TableHead>Total de Validações</TableHead>
+                      <TableHead>Código</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {bpoStats.map((stat, index) => (
+                    {bpoValidationExtract.map((extract, index) => (
                       <TableRow key={index}>
-                        <TableCell className="font-medium">{stat.bpo_name}</TableCell>
-                        <TableCell>{stat.total_validations}</TableCell>
+                        <TableCell className="font-medium">{extract.bpo_name}</TableCell>
+                        <TableCell>{extract.candidate_cpf}</TableCell>
+                        <TableCell>{extract.candidate_name}</TableCell>
+                        <TableCell>
+                          {new Date(extract.processed_at).toLocaleDateString('pt-BR')}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={
+                            ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(extract.status_after) 
+                              ? "default" 
+                              : "secondary"
+                          }>
+                            {extract.status_after}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
                     ))}
-                    {bpoStats.length === 0 && (
+                    {bpoValidationExtract.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={2} className="text-center text-muted-foreground py-4">
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                           Nenhum dado encontrado para o período selecionado
                         </TableCell>
                       </TableRow>
@@ -559,10 +610,10 @@ export const Reports = () => {
                   </TableBody>
                 </Table>
               </div>
-              {bpoStats.length > 0 && (
+              {bpoValidationExtract.length > 0 && (
                 <div className="mt-4 p-4 bg-muted rounded-lg">
                   <p className="font-medium">
-                    Total Consolidado: {bpoStats.reduce((sum, stat) => sum + stat.total_validations, 0)} validações
+                    Total de Registros: {bpoValidationExtract.length}
                   </p>
                 </div>
               )}
