@@ -386,6 +386,12 @@ export const Reports = () => {
     loadActivityReports();
   };
 
+  const clearFilters = () => {
+    setDateFrom('');
+    setDateTo('');
+    loadActivityReports();
+  };
+
   useEffect(() => {
     loadReportsData();
   }, []);
@@ -465,9 +471,14 @@ export const Reports = () => {
                 onChange={(e) => setDateTo(e.target.value)}
               />
             </div>
-            <Button onClick={applyDateFilter} variant="outline">
-              Aplicar Filtro
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={applyDateFilter} variant="outline">
+                Aplicar Filtro
+              </Button>
+              <Button onClick={clearFilters} variant="ghost">
+                Limpar Filtros
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
