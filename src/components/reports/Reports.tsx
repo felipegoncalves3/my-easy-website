@@ -106,11 +106,12 @@ export const Reports = () => {
         displayQuery = displayQuery.lte('processed_at', dateTo + 'T23:59:59');
       }
 
-      // Query para exportação (todos os registros)
+      // Query para exportação - buscar TODOS os registros (remover limite padrão de 1000)
       let exportQuery = supabase
         .from('candidate_activity_logs' as any)
-        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
-        .order('processed_at', { ascending: false });
+        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao', { count: 'exact' })
+        .order('processed_at', { ascending: false })
+        .range(0, 100000); // Aumentar limite para 100k registros
 
       if (dateFrom) {
         exportQuery = exportQuery.gte('processed_at', dateFrom + 'T00:00:00');
