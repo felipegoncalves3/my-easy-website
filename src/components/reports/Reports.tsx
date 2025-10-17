@@ -153,10 +153,8 @@ export const Reports = () => {
       // Armazenar dados de exportação em uma nova variável de estado
       setBpoValidationExportData(exportExtractData);
 
-      // Filtrar apenas registros validados para os outros relatórios (usar dados de exportação completos)
-      const validatedData = typedExportData.filter(log => 
-        ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(log.status_after)
-      );
+      // Usar todos os dados de exportação para os relatórios (não filtrar por status)
+      const validatedData = typedExportData.filter(log => log.bpo_name);
 
       // Relatório 1: Quantidade de validados por BPO (considera repetições como +1)
       const bpoValidations = validatedData.reduce((acc, log) => {
