@@ -155,6 +155,11 @@ export const Reports = () => {
 
       // Usar todos os dados de exportação para os relatórios (todos os BPOs)
       const validatedData = typedExportData.filter(log => log.bpo_name && log.bpo_name.trim() !== '');
+      
+      console.log('=== DEBUG RELATÓRIOS ===');
+      console.log('Total de registros da query:', typedExportData.length);
+      console.log('Registros após filtro:', validatedData.length);
+      console.log('BPOs únicos encontrados:', [...new Set(validatedData.map(log => log.bpo_name))]);
 
       // Relatório 1: Quantidade de validados por BPO (considera repetições como +1)
       const bpoValidations = validatedData.reduce((acc, log) => {
@@ -162,6 +167,8 @@ export const Reports = () => {
         acc[bpo] = (acc[bpo] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
+      
+      console.log('Contagens por BPO:', bpoValidations);
 
       setBpoStats(Object.entries(bpoValidations || {}).map(([bpo_name, total_validations]) => ({
         bpo_name,
