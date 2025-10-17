@@ -106,30 +106,50 @@ export const Reports = () => {
         displayQuery = displayQuery.lte('processed_at', dateTo + 'T23:59:59');
       }
 
-      // Query para exportação - buscar TODOS os registros (remover limite padrão de 1000)
-      let exportQuery = supabase
-        .from('candidate_activity_logs' as any)
-        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao', { count: 'exact' })
-        .order('processed_at', { ascending: false })
-        .range(0, 100000); // Aumentar limite para 100k registros
+      // Query para dados de exportação (até 50k registros com paginação)
+      let allExportData: any[] = [];
+      let page = 0;
+      const pageSize = 1000;
+      let hasMore = true;
 
-      if (dateFrom) {
-        exportQuery = exportQuery.gte('processed_at', dateFrom + 'T00:00:00');
+      while (hasMore) {
+        let exportQuery = supabase
+          .from('candidate_activity_logs' as any)
+          .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
+          .order('processed_at', { ascending: false })
+          .range(page * pageSize, (page + 1) * pageSize - 1);
+
+        if (dateFrom) {
+          exportQuery = exportQuery.gte('processed_at', dateFrom + 'T00:00:00');
+        }
+        if (dateTo) {
+          exportQuery = exportQuery.lte('processed_at', dateTo + 'T23:59:59');
+        }
+
+        const { data, error } = await exportQuery;
+        
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          allExportData = [...allExportData, ...data];
+          page++;
+          hasMore = data.length === pageSize;
+        } else {
+          hasMore = false;
+        }
+
+        // Limite de segurança: máximo 50 páginas (50k registros)
+        if (page >= 50) {
+          hasMore = false;
+        }
       }
-      if (dateTo) {
-        exportQuery = exportQuery.lte('processed_at', dateTo + 'T23:59:59');
-      }
-      
-      const [{ data: displayData, error: displayError }, { data: exportData, error: exportError }] = await Promise.all([
-        displayQuery,
-        exportQuery
-      ]);
+
+      const { data: displayData, error: displayError } = await displayQuery;
 
       if (displayError) throw displayError;
-      if (exportError) throw exportError;
 
       const typedDisplayData = (displayData || []) as any[];
-      const typedExportData = (exportData || []) as any[];
+      const typedExportData = allExportData as any[];
 
       // Preparar extrato de validações para a aba 2 (apenas exibição - 10 registros)
       const extractData = typedDisplayData.map(log => ({
