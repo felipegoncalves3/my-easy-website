@@ -12,27 +12,48 @@ export interface User {
 
 export interface Candidate {
   id: string;
+  codigo: string;
   nome: string;
   cpf?: string;
   status_contratacao?: string;
-  progresso_documentos?: number;
-  criado_em?: string;
-  data_admissao?: string;
-  data_expiracao?: string;
+  progressao_documentos?: number;
+  data_criacao?: string;
+  data_de_admissao_10040?: string;
+  data_de_expiracao?: string;
   evolucao?: string;
   motivo?: string;
   bpo_responsavel?: string;
-  priorizar_status?: string;
-  priorizar_data_admissao?: string;
-  em_progresso_ge_60?: string;
-  status: string;
-  bpo_validou: boolean;
-  bpo_que_validou?: string;
-  validado_por?: string;
-  validado_em?: string;
-  id_contratacao?: number;
+  bpo_validou: string | null;
+  data_extracao?: string;
+  // New flags for dynamic priority
+  flag_prioridade_status?: boolean;
+  flag_prioridade_progresso?: boolean;
+  flag_prioridade_data?: boolean;
+  // Metadata
+  id_empresa_matriz?: number | null;
+  matrix_name?: string; // For UI display
+}
+
+export interface BPOValidation {
+  id: string;
+  codigo: string;
+  bpo_usuario_id: string;
+  bpo_nome: string;
+  status_contratacao_anterior?: string;
+  progressao_documentos_anterior?: number;
+  bpo_validou_anterior?: string;
+  status_contratacao_novo?: string;
+  progressao_documentos_novo?: number;
+  bpo_validou_novo?: string;
+  data_primeira_visualizacao: string;
+  data_validacao: string;
+  tempo_validacao_segundos: number;
+  motivo_validacao?: string;
+  rollback: boolean;
+  data_rollback?: string;
+  rollback_por?: string;
+  motivo_rollback?: string;
   created_at: string;
-  updated_at: string;
 }
 
 export interface SyncLog {

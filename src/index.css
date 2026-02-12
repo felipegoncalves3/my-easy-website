@@ -2,108 +2,67 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design System — all colors are HSL tokens */
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* DEFAULT THEME (Dark Mode Native for Techub) */
+    --background: 0 0% 2%;
+    /* Deepest Black */
+    --foreground: 0 0% 98%;
+    /* Pure White text */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 4%;
+    /* Slightly lighter for cards */
+    --card-foreground: 0 0% 98%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 0 0% 5%;
+    --popover-foreground: 0 0% 98%;
 
-    /* Brand - Green Theme */
+    /* Brand - Techub Green */
     --primary: 139 69% 48%;
+    /* Vibrant Green */
+    --primary-foreground: 0 0% 0%;
     --primary-variant: 139 69% 42%;
     --primary-glow: 139 69% 75%;
-    --primary-foreground: 0 0% 0%;
 
-    --secondary: 0 0% 96%;
-    --secondary-foreground: 0 0% 15%;
+    --secondary: 0 0% 8%;
+    /* Dark gray for secondary actions */
+    --secondary-foreground: 0 0% 98%;
 
-    --muted: 210 40% 98%;
-    --muted-foreground: 215 16% 47%;
+    --muted: 0 0% 8%;
+    /* Muted backgrounds */
+    --muted-foreground: 0 0% 60%;
 
-    --accent: 210 40% 96%;
-    --accent-foreground: 0 0% 15%;
+    --accent: 0 0% 10%;
+    /* Interactive accents */
+    --accent-foreground: 0 0% 98%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
 
-    --warning: 25 95% 55%;
-    --warning-foreground: 0 0% 0%;
-    --success: 120 60% 50%;
-    --success-foreground: 0 0% 100%;
-
-    --border: 214 32% 91%;
-    --input: 214 32% 91%;
-    --ring: 139 69% 78%;
+    --border: 0 0% 12%;
+    /* Subtle borders */
+    --input: 0 0% 12%;
+    --ring: 139 69% 48%;
+    /* Green focus ring */
 
     --radius: 0.75rem;
 
-    --sidebar-background: 0 0% 96%;
-    --sidebar-foreground: 0 0% 15%;
+    /* Sidebar specific */
+    --sidebar-background: 0 0% 3%;
+    --sidebar-foreground: 0 0% 95%;
     --sidebar-primary: 139 69% 48%;
     --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 94%;
-    --sidebar-accent-foreground: 0 0% 10%;
-    --sidebar-border: 0 0% 87%;
+    --sidebar-accent: 0 0% 8%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 0 0% 10%;
     --sidebar-ring: 139 69% 48%;
 
-    /* Gradients & shadows */
+    /* Shadows & Effects */
     --gradient-primary: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary-variant)));
-    --gradient-subtle: linear-gradient(180deg, hsl(var(--background)), hsl(var(--muted)));
-    --shadow-elevated: 0 20px 40px -20px hsl(var(--primary) / 0.35);
-    --shadow-hero: 0 10px 30px -10px hsl(var(--primary) / 0.35);
-    --shadow-hero-lg: 0 20px 60px -20px hsl(var(--primary-glow) / 0.45);
-  }
-
-  .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-
-    --primary: 139 69% 58%;
-    --primary-variant: 139 69% 52%;
-    --primary-glow: 139 69% 85%;
-    --primary-foreground: 0 0% 0%;
-
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 0 0% 95%;
-
-    --muted: 217 33% 17%;
-    --muted-foreground: 215 20% 65%;
-
-    --accent: 217 33% 17%;
-    --accent-foreground: 0 0% 95%;
-
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-
-    --warning: 25 95% 55%;
-    --warning-foreground: 0 0% 0%;
-    --success: 120 60% 50%;
-    --success-foreground: 0 0% 100%;
-
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 258 90% 65%;
-
-    --sidebar-background: 0 0% 8%;
-    --sidebar-foreground: 0 0% 95%;
-    --sidebar-primary: 139 69% 58%;
-    --sidebar-primary-foreground: 0 0% 0%;
-    --sidebar-accent: 0 0% 15%;
-    --sidebar-accent-foreground: 0 0% 95%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 139 69% 58%;
+    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    --shadow-glow: 0 0 20px -5px hsl(var(--primary) / 0.3);
   }
 }
 
@@ -113,42 +72,39 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground tracking-tight antialiased;
+    font-feature-settings: "ss01", "ss02", "cv01", "cv02";
   }
 }
 
-/* Utilities and component skins using tokens */
 @layer utilities {
-  .bg-gradient-hero { background-image: var(--gradient-primary); }
-  .shadow-hero { box-shadow: var(--shadow-hero); }
-  .shadow-hero-lg { box-shadow: var(--shadow-hero-lg); }
   .glass {
-    background-color: hsl(var(--card) / 0.6);
-    backdrop-filter: saturate(140%) blur(10px);
-    -webkit-backdrop-filter: saturate(140%) blur(10px);
-    border: 1px solid hsl(var(--border));
+    @apply bg-black/60 backdrop-blur-md border border-white/10;
   }
-  .feature-card { transition: transform .25s ease, box-shadow .3s ease; }
-  .feature-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-elevated); }
-  
-  /* Tabular numbers for consistent digit alignment */
-  .tabular-nums { font-variant-numeric: tabular-nums; }
-  
-  /* Modern table styles */
-  .table-modern .table-row-zebra:nth-child(even) { @apply bg-muted/20; }
-  .table-modern .table-row-zebra:hover { @apply bg-accent transition-colors; }
-  
-  /* Smooth transitions */
-  .transition-smooth { transition: all 0.15s ease-out; }
 
-  /* Signature pointer glow */
-  .pointer-glow { position: absolute; inset: 0; }
-  .pointer-glow::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background: radial-gradient(600px 400px at var(--glow-x, 50%) var(--glow-y, 50%), hsl(var(--primary) / 0.15), transparent 60%);
-    transition: opacity .3s ease;
+  /* Text Utilities */
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Animations */
+  .animate-in-fade {
+    animation: fadeIn 0.3s ease-out forwards;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(5px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 }

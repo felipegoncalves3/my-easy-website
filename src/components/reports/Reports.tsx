@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from '@/components/ui/table';
 import { Download, FileText, Calendar } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -42,7 +42,6 @@ interface BpoValidationExtract {
   candidate_name: string;
   processed_at: string;
   status_after: string;
-  data_admissao?: string;
 }
 
 export const Reports = () => {
@@ -50,7 +49,6 @@ export const Reports = () => {
   const [syncLogs, setSyncLogs] = useState<SyncLog[]>([]);
   const [bpoStats, setBpoStats] = useState<BpoValidationStats[]>([]);
   const [bpoValidationExtract, setBpoValidationExtract] = useState<BpoValidationExtract[]>([]);
-  const [bpoValidationExportData, setBpoValidationExportData] = useState<BpoValidationExtract[]>([]);
   const [bpoValidationAverages, setBpoValidationAverages] = useState<BpoValidationAverages[]>([]);
   const [timeBetweenValidations, setTimeBetweenValidations] = useState<TimeBetweenValidations[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -62,9 +60,8 @@ export const Reports = () => {
     try {
       // Carregar candidatos
       const { data: candidatesData, error: candidatesError } = await supabase
-        .from('candidates')
-        .select('*')
-        .order('created_at', { ascending: false });
+        .from('bpo_producao')
+        .select('*');
 
       if (candidatesError) throw candidatesError;
 
@@ -92,95 +89,37 @@ export const Reports = () => {
 
   const loadActivityReports = async () => {
     try {
-      // Query para exibição na tela (limitada a 10 registros)
-      let displayQuery = supabase
+      let query = supabase
         .from('candidate_activity_logs' as any)
-        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
-        .order('processed_at', { ascending: false })
-        .limit(10);
+        .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after');
 
       if (dateFrom) {
-        displayQuery = displayQuery.gte('processed_at', dateFrom + 'T00:00:00');
+        query = query.gte('processed_at', dateFrom + 'T00:00:00');
       }
       if (dateTo) {
-        displayQuery = displayQuery.lte('processed_at', dateTo + 'T23:59:59');
+        query = query.lte('processed_at', dateTo + 'T23:59:59');
       }
+      // Filtrar registros sem filtro inicial para pegar todos os tipos de status
 
-      // Query para dados de exportação (até 50k registros com paginação)
-      let allExportData: any[] = [];
-      let page = 0;
-      const pageSize = 1000;
-      let hasMore = true;
+      const { data: activityData, error } = await query;
+      if (error) throw error;
 
-      while (hasMore) {
-        let exportQuery = supabase
-          .from('candidate_activity_logs' as any)
-          .select('candidate_id,candidate_name,candidate_cpf,bpo_name,bpo_user_id,processed_at,status_after,data_admissao')
-          .order('processed_at', { ascending: false })
-          .range(page * pageSize, (page + 1) * pageSize - 1);
+      const typedActivityData = (activityData || []) as any[];
 
-        if (dateFrom) {
-          exportQuery = exportQuery.gte('processed_at', dateFrom + 'T00:00:00');
-        }
-        if (dateTo) {
-          exportQuery = exportQuery.lte('processed_at', dateTo + 'T23:59:59');
-        }
-
-        const { data, error } = await exportQuery;
-        
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          allExportData = [...allExportData, ...data];
-          page++;
-          hasMore = data.length === pageSize;
-        } else {
-          hasMore = false;
-        }
-
-        // Limite de segurança: máximo 50 páginas (50k registros)
-        if (page >= 50) {
-          hasMore = false;
-        }
-      }
-
-      const { data: displayData, error: displayError } = await displayQuery;
-
-      if (displayError) throw displayError;
-
-      const typedDisplayData = (displayData || []) as any[];
-      const typedExportData = allExportData as any[];
-
-      // Preparar extrato de validações para a aba 2 (apenas exibição - 10 registros)
-      const extractData = typedDisplayData.map(log => ({
+      // Preparar extrato de validações para a aba 2
+      const extractData = typedActivityData.map(log => ({
         bpo_name: log.bpo_name || 'Sem BPO',
         candidate_cpf: log.candidate_cpf || 'N/A',
         candidate_name: log.candidate_name || 'N/A',
         processed_at: log.processed_at,
-        status_after: log.status_after || 'N/A',
-        data_admissao: log.data_admissao
+        status_after: log.status_after || 'N/A'
       }));
       setBpoValidationExtract(extractData);
 
-      // Preparar dados completos para exportação
-      const exportExtractData = typedExportData.map(log => ({
-        bpo_name: log.bpo_name || 'Sem BPO',
-        candidate_cpf: log.candidate_cpf || 'N/A',
-        candidate_name: log.candidate_name || 'N/A',
-        processed_at: log.processed_at,
-        status_after: log.status_after || 'N/A',
-        data_admissao: log.data_admissao
-      }));
-      // Armazenar dados de exportação em uma nova variável de estado
-      setBpoValidationExportData(exportExtractData);
-
-      // Usar todos os dados de exportação para os relatórios (todos os BPOs)
-      const validatedData = typedExportData.filter(log => log.bpo_name && log.bpo_name.trim() !== '');
-      
-      console.log('=== DEBUG RELATÓRIOS ===');
-      console.log('Total de registros da query:', typedExportData.length);
-      console.log('Registros após filtro:', validatedData.length);
-      console.log('BPOs únicos encontrados:', [...new Set(validatedData.map(log => log.bpo_name))]);
+      // Filtrar apenas registros validados para os outros relatórios
+      const validatedData = typedActivityData.filter(log =>
+        ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(log.status_after)
+      );
 
       // Relatório 1: Quantidade de validados por BPO (considera repetições como +1)
       const bpoValidations = validatedData.reduce((acc, log) => {
@@ -188,8 +127,6 @@ export const Reports = () => {
         acc[bpo] = (acc[bpo] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
-      
-      console.log('Contagens por BPO:', bpoValidations);
 
       setBpoStats(Object.entries(bpoValidations || {}).map(([bpo_name, total_validations]) => ({
         bpo_name,
@@ -214,7 +151,7 @@ export const Reports = () => {
           acc[date] = (acc[date] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        const dailyAverage = Object.keys(dayGroups).length > 0 ? 
+        const dailyAverage = Object.keys(dayGroups).length > 0 ?
           (Object.values(dayGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(dayGroups).length : 0;
 
         // Agrupar por mês
@@ -224,7 +161,7 @@ export const Reports = () => {
           acc[month] = (acc[month] || 0) + 1;
           return acc;
         }, {} as Record<string, number>);
-        const monthlyAverage = Object.keys(monthGroups).length > 0 ? 
+        const monthlyAverage = Object.keys(monthGroups).length > 0 ?
           (Object.values(monthGroups) as number[]).reduce((a, b) => a + b, 0) / Object.keys(monthGroups).length : 0;
 
         return {
@@ -246,18 +183,18 @@ export const Reports = () => {
           bpo_name: log.bpo_name || 'Sem BPO'
         });
         return acc;
-      }, {} as Record<string, Array<{processed_at: Date, bpo_name: string}>>);
+      }, {} as Record<string, Array<{ processed_at: Date, bpo_name: string }>>);
 
       const timeBetween = Object.entries(bpoGroups).map(([bpoId, logs]) => {
-        const typedLogs = logs as Array<{processed_at: Date, bpo_name: string}>;
+        const typedLogs = logs as Array<{ processed_at: Date, bpo_name: string }>;
         if (!typedLogs || typedLogs.length < 2) return null;
-        
+
         typedLogs.sort((a, b) => a.processed_at.getTime() - b.processed_at.getTime());
         let totalTime = 0;
         let intervals = 0;
 
         for (let i = 1; i < typedLogs.length; i++) {
-          const diff = typedLogs[i].processed_at.getTime() - typedLogs[i-1].processed_at.getTime();
+          const diff = typedLogs[i].processed_at.getTime() - typedLogs[i - 1].processed_at.getTime();
           totalTime += diff;
           intervals++;
         }
@@ -300,26 +237,24 @@ export const Reports = () => {
         'Data Criação'
       ];
       data = candidates.map(candidate => [
-        candidate.id_contratacao || '',
+        candidate.codigo || '',
         candidate.nome,
         candidate.cpf || '',
         candidate.status_contratacao || '',
-        candidate.progresso_documentos || '',
+        candidate.progressao_documentos || '',
         candidate.bpo_responsavel || '',
-        candidate.status,
-        candidate.bpo_validou ? 'SIM' : 'NÃO',
-        new Date(candidate.created_at).toLocaleDateString('pt-BR')
+        candidate.bpo_validou === 'SIM' ? 'SIM' : 'NÃO',
+        candidate.data_criacao ? new Date(candidate.data_criacao).toLocaleDateString('pt-BR') : 'N/A'
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status', 'Data Admissão'];
-      data = bpoValidationExportData.map(extract => [
+      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status'];
+      data = bpoValidationExtract.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
         extract.candidate_name,
         new Date(extract.processed_at).toLocaleDateString('pt-BR'),
-        extract.status_after,
-        extract.data_admissao ? new Date(extract.data_admissao).toLocaleDateString('pt-BR') : 'N/A'
+        extract.status_after
       ]);
       filename = 'extrato_validacoes_bpo';
     }
@@ -371,26 +306,24 @@ export const Reports = () => {
         'Data Criação'
       ];
       data = candidates.map(candidate => [
-        candidate.id_contratacao || '',
+        candidate.codigo || '',
         candidate.nome,
         candidate.cpf || '',
         candidate.status_contratacao || '',
-        candidate.progresso_documentos || '',
+        candidate.progressao_documentos || '',
         candidate.bpo_responsavel || '',
-        candidate.status,
-        candidate.bpo_validou ? 'SIM' : 'NÃO',
-        new Date(candidate.created_at).toLocaleDateString('pt-BR')
+        candidate.bpo_validou === 'SIM' ? 'SIM' : 'NÃO',
+        candidate.data_criacao ? new Date(candidate.data_criacao).toLocaleDateString('pt-BR') : 'N/A'
       ]);
       filename = 'candidatos';
     } else if (activeTab === 'validacoes-bpo') {
-      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status', 'Data Admissão'];
-      data = bpoValidationExportData.map(extract => [
+      headers = ['BPO', 'CPF', 'Nome', 'Data', 'Status'];
+      data = bpoValidationExtract.map(extract => [
         extract.bpo_name,
         extract.candidate_cpf,
         extract.candidate_name,
         new Date(extract.processed_at).toLocaleDateString('pt-BR'),
-        extract.status_after,
-        extract.data_admissao ? new Date(extract.data_admissao).toLocaleDateString('pt-BR') : 'N/A'
+        extract.status_after
       ]);
       filename = 'extrato_validacoes_bpo';
     }
@@ -409,12 +342,6 @@ export const Reports = () => {
   };
 
   const applyDateFilter = () => {
-    loadActivityReports();
-  };
-
-  const clearFilters = () => {
-    setDateFrom('');
-    setDateTo('');
     loadActivityReports();
   };
 
@@ -440,7 +367,7 @@ export const Reports = () => {
     total: candidates.length,
     validados: candidates.filter(c => c.bpo_validou).length,
     pendentes: candidates.filter(c => !c.bpo_validou).length,
-    percentualValidacao: candidates.length > 0 ? 
+    percentualValidacao: candidates.length > 0 ?
       Math.round((candidates.filter(c => c.bpo_validou).length / candidates.length) * 100) : 0
   };
 
@@ -451,15 +378,15 @@ export const Reports = () => {
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold">Relatórios</h1>
         <div className="flex gap-2">
-          <Button 
-            onClick={exportToCsv} 
+          <Button
+            onClick={exportToCsv}
             variant="outline"
             disabled={!canExport}
           >
             <Download className="mr-2 h-4 w-4" />
             CSV
           </Button>
-          <Button 
+          <Button
             onClick={exportToXlsx}
             disabled={!canExport}
           >
@@ -497,14 +424,9 @@ export const Reports = () => {
                 onChange={(e) => setDateTo(e.target.value)}
               />
             </div>
-            <div className="flex gap-2">
-              <Button onClick={applyDateFilter} variant="outline">
-                Aplicar Filtro
-              </Button>
-              <Button onClick={clearFilters} variant="ghost">
-                Limpar Filtros
-              </Button>
-            </div>
+            <Button onClick={applyDateFilter} variant="outline">
+              Aplicar Filtro
+            </Button>
           </div>
         </CardContent>
       </Card>
@@ -521,39 +443,39 @@ export const Reports = () => {
         <TabsContent value="relatorios" className="space-y-6">
           {/* Resumo Estatístico */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            <Card>
+            <Card className="rounded-2xl border-sidebar-border/50 bg-sidebar-accent/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Total</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Total</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.total}</div>
+                <div className="text-2xl font-bold text-foreground">{stats.total}</div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl border-sidebar-border/50 bg-sidebar-accent/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Validados</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Validados</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-green-600">{stats.validados}</div>
+                <div className="text-2xl font-bold text-primary">{stats.validados}</div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl border-sidebar-border/50 bg-sidebar-accent/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">Pendentes</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">Pendentes</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold text-yellow-600">{stats.pendentes}</div>
+                <div className="text-2xl font-bold text-warning">{stats.pendentes}</div>
               </CardContent>
             </Card>
 
-            <Card>
+            <Card className="rounded-2xl border-sidebar-border/50 bg-sidebar-accent/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-medium">% Validação</CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">% Validação</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">{stats.percentualValidacao}%</div>
+                <div className="text-2xl font-bold text-primary">{stats.percentualValidacao}%</div>
               </CardContent>
             </Card>
           </div>
@@ -576,17 +498,17 @@ export const Reports = () => {
                     </TableHeader>
                     <TableBody>
                       {candidates.slice(0, 20).map((candidate) => (
-                        <TableRow key={candidate.id}>
-                          <TableCell className="font-medium">
+                        <TableRow key={candidate.id} className="border-sidebar-border/30">
+                          <TableCell className="font-medium text-foreground">
                             {candidate.nome}
                           </TableCell>
                           <TableCell>
-                            <Badge variant={candidate.bpo_validou ? "default" : "secondary"}>
-                              {candidate.bpo_validou ? "Validado" : "Pendente"}
+                            <Badge variant={candidate.bpo_validou === 'SIM' ? "default" : "secondary"}>
+                              {candidate.bpo_validou === 'SIM' ? "Validado" : "Pendente"}
                             </Badge>
                           </TableCell>
-                          <TableCell>
-                            {new Date(candidate.created_at).toLocaleDateString('pt-BR')}
+                          <TableCell className="text-muted-foreground">
+                            {candidate.data_criacao ? new Date(candidate.data_criacao).toLocaleDateString('pt-BR') : 'N/A'}
                           </TableCell>
                         </TableRow>
                       ))}
@@ -645,17 +567,16 @@ export const Reports = () => {
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>BPO</TableHead>
-                        <TableHead>CPF</TableHead>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Data</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Data Admissão</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>BPO</TableHead>
+                      <TableHead>CPF</TableHead>
+                      <TableHead>Nome</TableHead>
+                      <TableHead>Data</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
                   <TableBody>
                     {bpoValidationExtract.map((extract, index) => (
                       <TableRow key={index}>
@@ -667,21 +588,18 @@ export const Reports = () => {
                         </TableCell>
                         <TableCell>
                           <Badge variant={
-                            ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(extract.status_after) 
-                              ? "default" 
+                            ['APPROVED', 'Validado', 'validado', 'VALIDADO'].includes(extract.status_after)
+                              ? "default"
                               : "secondary"
                           }>
                             {extract.status_after}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          {extract.data_admissao ? new Date(extract.data_admissao).toLocaleDateString('pt-BR') : 'N/A'}
-                        </TableCell>
                       </TableRow>
                     ))}
                     {bpoValidationExtract.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
+                        <TableCell colSpan={5} className="text-center text-muted-foreground py-4">
                           Nenhum dado encontrado para o período selecionado
                         </TableCell>
                       </TableRow>

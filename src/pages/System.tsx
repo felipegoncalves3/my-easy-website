@@ -4,7 +4,7 @@ import { LoginForm } from '@/components/auth/LoginForm';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Dashboard } from '@/components/dashboard/Dashboard';
 import { OperationalPanel } from '@/components/operational/OperationalPanel';
-import { Reports } from '@/components/reports/Reports';
+import { ReportsLayout } from '@/components/reports/ReportsLayout';
 import { Settings } from '@/components/settings/Settings';
 import { Button } from '@/components/ui/button';
 import { Menu } from 'lucide-react';
@@ -50,7 +50,7 @@ export const System = () => {
       case 'operational':
         return <OperationalPanel />;
       case 'reports':
-        return <Reports />;
+        return <ReportsLayout />;
       case 'settings':
         return <Settings />;
       default:
@@ -60,15 +60,15 @@ export const System = () => {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <Sidebar 
-        currentPage={currentPage} 
+      <Sidebar
+        currentPage={currentPage}
         onPageChange={setCurrentPage}
         isPinned={isPinned}
         onTogglePin={handleTogglePin}
         isOpen={isOpen}
         onClose={handleCloseDrawer}
       />
-      
+
       <main className={`flex-1 p-6 transition-all duration-300 ${isPinned ? 'ml-72' : 'ml-0'}`}>
         {!isPinned && (
           <Button

@@ -20,26 +20,37 @@ export const Dashboard = () => {
 
   const loadDashboardData = async () => {
     try {
-      // Carregar estatísticas
+      // Carregar estatísticas do bpo_producao
       const { data: candidates, error: candidatesError } = await supabase
-        .from('candidates')
+        .from('bpo_producao')
         .select('*');
 
       if (candidatesError) throw candidatesError;
 
-      const total = candidates?.length || 0;
-      const validados = candidates?.filter(c => c.bpo_validou).length || 0;
-      const pendentes = total - validados;
+      // Filter candidates based on status exclusion rules
+      const validCandidates = (candidates || []).filter(c => {
+        const status = (c.status_contratacao || '').toLowerCase().trim();
+        const INVALID_STATUSES = ['finalizado', 'cancelado', 'arquivado', 'concluído', 'concluido', 'validado', 'iniciado'];
+        return !INVALID_STATUSES.includes(status);
+      });
+
+      const total = validCandidates.length;
+      const validados = validCandidates.filter(c => c.bpo_validou === 'SIM').length;
+      const pendentes = validCandidates.filter(c => c.bpo_validou === null || c.bpo_validou === 'NÃO').length;
       const percentualValidacao = total > 0 ? Math.round((validados / total) * 100) : 0;
 
       setStats({ total, validados, pendentes, percentualValidacao });
 
-      // Candidatos recentes
-      const recent = candidates
-        ?.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
-        ?.slice(0, 5) || [];
-      
-      setRecentCandidates(recent);
+      // Candidatos recentes (usando data_criacao se disponível, ou fallback para id)
+      const recent = validCandidates
+        .sort((a, b) => {
+          const dateA = a.data_criacao ? new Date(a.data_criacao).getTime() : 0;
+          const dateB = b.data_criacao ? new Date(b.data_criacao).getTime() : 0;
+          return dateB - dateA;
+        })
+        .slice(0, 5);
+
+      setRecentCandidates(recent as Candidate[]);
 
       // Último log de sincronização
       const { data: syncLogs } = await supabase
@@ -63,25 +74,12 @@ export const Dashboard = () => {
   useEffect(() => {
     loadDashboardData();
 
-    // Configurar tempo real
-    const channel = supabase
-      .channel('dashboard-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'candidates'
-        },
-        () => {
-          loadDashboardData();
-        }
-      )
-      .subscribe();
+    // Polling Strategy: Update every 1 hour (3600000 ms)
+    const intervalId = setInterval(() => {
+      loadDashboardData();
+    }, 3600000);
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => clearInterval(intervalId);
   }, []);
 
   if (isLoading) {
@@ -95,17 +93,17 @@ export const Dashboard = () => {
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center">
-        <h1 className="text-4xl font-bold text-black animate-slide-up">
+        <h1 className="text-4xl font-bold text-foreground animate-slide-up">
           Dashboard
         </h1>
         <div className="text-sm text-muted-foreground bg-primary/10 px-4 py-2 rounded-full border border-primary/20 backdrop-blur-sm animate-scale-in">
-          ⚡ Atualização em tempo real
+          ⚡ Atualização: 1h
         </div>
       </div>
 
       {/* Cards de Estatísticas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="card-modern hover-glow animate-slide-up" style={{ animationDelay: '100ms' }}>
+        <Card className="card-modern rounded-2xl border-sidebar-border/50 bg-sidebar-accent/10 hover-glow animate-slide-up" style={{ animationDelay: '100ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground">Total de Candidatos</CardTitle>
             <div className="p-2 rounded-lg bg-primary/10">
@@ -144,7 +142,7 @@ export const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card className="card-modern hover-glow animate-slide-up" style={{ animationDelay: '400ms' }}>
+        <Card className="card-modern rounded-2xl border-sidebar-border/50 bg-sidebar-accent/10 hover-glow animate-slide-up" style={{ animationDelay: '400ms' }}>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-semibold text-muted-foreground">% Validação</CardTitle>
             <div className="p-2 rounded-lg bg-primary/10">
@@ -153,14 +151,14 @@ export const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold text-primary mb-2">{stats.percentualValidacao}%</div>
-            <Progress value={stats.percentualValidacao} className="h-2 bg-muted" />
+            <Progress value={stats.percentualValidacao} className="h-2 bg-muted/20" />
           </CardContent>
         </Card>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Candidatos Recentes */}
-        <Card className="card-modern animate-slide-up" style={{ animationDelay: '500ms' }}>
+        <Card className="card-modern rounded-2xl border-sidebar-border/50 bg-sidebar-accent/5 animate-slide-up" style={{ animationDelay: '500ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <div className="w-2 h-2 bg-primary rounded-full"></div>
@@ -170,15 +168,15 @@ export const Dashboard = () => {
           <CardContent>
             <div className="space-y-4">
               {recentCandidates.map((candidate, index) => (
-                <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg bg-accent/30 hover:bg-accent/50 transition-colors duration-200">
+                <div key={candidate.id} className="flex items-center justify-between p-3 rounded-lg bg-sidebar-accent/20 hover:bg-sidebar-accent/50 transition-colors duration-200">
                   <div>
                     <p className="font-semibold text-foreground">{candidate.nome}</p>
-                    <p className="text-sm text-muted-foreground">ID: {candidate.id_contratacao || 'N/A'}</p>
+                    <p className="text-sm text-muted-foreground">ID: {candidate.codigo || 'N/A'}</p>
                   </div>
-                  <Badge 
-                    className={candidate.bpo_validou ? "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary text-primary-foreground hover:bg-primary/80 text-xs" : "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-secondary-foreground bg-orange-500 hover:bg-orange-600 text-xs"}
+                  <Badge
+                    className={candidate.bpo_validou === 'SIM' ? "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary/20 text-primary hover:bg-primary/30 text-xs" : "inline-flex items-center rounded-full border px-2.5 py-0.5 font-semibold transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent text-secondary-foreground bg-orange-500/20 text-orange-500 hover:bg-orange-500/30 text-xs"}
                   >
-                    {candidate.bpo_validou ? "Validado" : "Pendente"}
+                    {candidate.bpo_validou === 'SIM' ? "Validado" : "Pendente"}
                   </Badge>
                 </div>
               ))}
@@ -195,7 +193,7 @@ export const Dashboard = () => {
         </Card>
 
         {/* Status da Sincronização */}
-        <Card className="card-modern animate-slide-up" style={{ animationDelay: '600ms' }}>
+        <Card className="card-modern rounded-2xl border-sidebar-border/50 bg-sidebar-accent/5 animate-slide-up" style={{ animationDelay: '600ms' }}>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>

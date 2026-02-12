@@ -14,57 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      candidate_activity_logs: {
-        Row: {
-          action_type: string
-          bpo_name: string | null
-          bpo_user_id: string | null
-          candidate_cpf: string | null
-          candidate_id: string
-          candidate_name: string
-          created_at: string
-          data_admissao: string | null
-          id: string
-          notes: string | null
-          processed_at: string
-          status_after: string | null
-          status_before: string | null
-          updated_at: string
-        }
-        Insert: {
-          action_type: string
-          bpo_name?: string | null
-          bpo_user_id?: string | null
-          candidate_cpf?: string | null
-          candidate_id: string
-          candidate_name: string
-          created_at?: string
-          data_admissao?: string | null
-          id?: string
-          notes?: string | null
-          processed_at?: string
-          status_after?: string | null
-          status_before?: string | null
-          updated_at?: string
-        }
-        Update: {
-          action_type?: string
-          bpo_name?: string | null
-          bpo_user_id?: string | null
-          candidate_cpf?: string | null
-          candidate_id?: string
-          candidate_name?: string
-          created_at?: string
-          data_admissao?: string | null
-          id?: string
-          notes?: string | null
-          processed_at?: string
-          status_after?: string | null
-          status_before?: string | null
-          updated_at?: string
-        }
-        Relationships: []
-      }
       candidates: {
         Row: {
           bpo_que_validou: string | null
@@ -241,12 +190,194 @@ export type Database = {
         }
         Relationships: []
       }
+      bpo_producao: {
+        Row: {
+          id: number
+          codigo: string | null
+          nome: string | null
+          cpf: string | null
+          status_contratacao: string | null
+          progressao_documentos: number | null
+          data_criacao: string | null
+          data_de_admissao_10040: string | null
+          data_de_expiracao: string | null
+          evolucao: string | null
+          motivo: string | null
+          bpo_responsavel: string | null
+          priorizar_status: string | null
+          priorizar_data_de_admissao: string | null
+          em_progresso_maior_igual_60: string | null
+          bpo_validou: string | null
+          data_extracao: string | null
+          id_empresa_matriz: number | null
+        }
+        Insert: {
+          id?: number
+          codigo?: string | null
+          nome?: string | null
+          cpf?: string | null
+          status_contratacao?: string | null
+          progressao_documentos?: number | null
+          data_criacao?: string | null
+          data_de_admissao_10040?: string | null
+          data_de_expiracao?: string | null
+          evolucao?: string | null
+          motivo?: string | null
+          bpo_responsavel?: string | null
+          priorizar_status?: string | null
+          priorizar_data_de_admissao?: string | null
+          em_progresso_maior_igual_60?: string | null
+          bpo_validou?: string | null
+          data_extracao?: string | null
+          id_empresa_matriz?: number | null
+        }
+        Update: {
+          id?: number
+          codigo?: string | null
+          nome?: string | null
+          cpf?: string | null
+          status_contratacao?: string | null
+          progressao_documentos?: number | null
+          data_criacao?: string | null
+          data_de_admissao_10040?: string | null
+          data_de_expiracao?: string | null
+          evolucao?: string | null
+          motivo?: string | null
+          bpo_responsavel?: string | null
+          priorizar_status?: string | null
+          priorizar_data_de_admissao?: string | null
+          em_progresso_maior_igual_60?: string | null
+          bpo_validou?: string | null
+          data_extracao?: string | null
+          id_empresa_matriz?: number | null
+        }
+        Relationships: []
+      }
+      bpo_validacoes: {
+        Row: {
+          id: string
+          codigo: string
+          bpo_usuario_id: string
+          bpo_nome: string
+          status_contratacao_anterior: string | null
+          progressao_documentos_anterior: number | null
+          bpo_validou_anterior: string | null
+          status_contratacao_novo: string | null
+          progressao_documentos_novo: number | null
+          bpo_validou_novo: string | null
+          data_primeira_visualizacao: string
+          data_validacao: string
+          tempo_validacao_segundos: number
+          motivo_validacao: string | null
+          rollback: boolean
+          data_rollback: string | null
+          rollback_por: string | null
+          motivo_rollback: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          codigo: string
+          bpo_usuario_id: string
+          bpo_nome: string
+          status_contratacao_anterior?: string | null
+          progressao_documentos_anterior?: number | null
+          bpo_validou_anterior?: string | null
+          status_contratacao_novo?: string | null
+          progressao_documentos_novo?: number | null
+          bpo_validou_novo?: string | null
+          data_primeira_visualizacao: string
+          data_validacao: string
+          tempo_validacao_segundos: number
+          motivo_validacao?: string | null
+          rollback?: boolean
+          data_rollback?: string | null
+          rollback_por?: string | null
+          motivo_rollback?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          codigo?: string
+          bpo_usuario_id?: string
+          bpo_nome?: string
+          status_contratacao_anterior?: string | null
+          progressao_documentos_anterior?: number | null
+          bpo_validou_anterior?: string | null
+          status_contratacao_novo?: string | null
+          progressao_documentos_novo?: number | null
+          bpo_validou_novo?: string | null
+          data_primeira_visualizacao?: string
+          data_validacao?: string
+          tempo_validacao_segundos?: number
+          motivo_validacao?: string | null
+          rollback?: boolean
+          data_rollback?: string | null
+          rollback_por?: string | null
+          motivo_rollback?: string | null
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bpo_validacoes_bpo_usuario_id_fkey"
+            columns: ["bpo_usuario_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
-      [_ in never]: never
+      vw_bpo_fila_operacional: {
+        Row: {
+          id: number
+          codigo: string | null
+          nome: string | null
+          cpf: string | null
+          status_contratacao: string | null
+          progressao_documentos: number | null
+          data_criacao: string | null
+          data_de_admissao_10040: string | null
+          data_de_expiracao: string | null
+          evolucao: string | null
+          motivo: string | null
+          bpo_responsavel: string | null
+          priorizar_status: string | null
+          priorizar_data_de_admissao: string | null
+          em_progresso_maior_igual_60: string | null
+          bpo_validou: string | null
+          data_extracao: string | null
+        }
+      }
+      vw_bpo_metricas_produtividade: {
+        Row: {
+          bpo_nome: string
+          total_validados: number
+          tempo_medio_segundos: number
+          total_rollbacks: number
+        }
+      }
     }
     Functions: {
-      [_ in never]: never
+      validar_candidato: {
+        Args: {
+          p_codigo: string
+          p_usuario_id: string
+          p_usuario_nome: string
+          p_data_primeira_visualizacao: string
+          p_motivo_validacao?: string
+        }
+        Returns: undefined
+      }
+      executar_rollback: {
+        Args: {
+          p_validacao_id: string
+          p_usuario_id: string
+          p_motivo_rollback: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -263,116 +394,116 @@ type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
-    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+  ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
-      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+    DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
       Row: infer R
     }
-    ? R
-    : never
+  ? R
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
-      }
-      ? R
-      : never
-    : never
+    DefaultSchema["Views"])
+  ? (DefaultSchema["Tables"] &
+    DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+      Row: infer R
+    }
+  ? R
+  : never
+  : never
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
-    }
-    ? I
-    : never
+    Insert: infer I
+  }
+  ? I
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
-      }
-      ? I
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Insert: infer I
+  }
+  ? I
+  : never
+  : never
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Tables"]
+  | { schema: keyof DatabaseWithoutInternals },
   TableName extends DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+  : never = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
-    }
-    ? U
-    : never
+    Update: infer U
+  }
+  ? U
+  : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
-    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
-      }
-      ? U
-      : never
-    : never
+  ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+    Update: infer U
+  }
+  ? U
+  : never
+  : never
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["Enums"]
+  | { schema: keyof DatabaseWithoutInternals },
   EnumName extends DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+  : never = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
-    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+  ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+  : never
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+  | keyof DefaultSchema["CompositeTypes"]
+  | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
-    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+  ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+  : never = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
-    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+  ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+  : never
 
 export const Constants = {
   public: {
